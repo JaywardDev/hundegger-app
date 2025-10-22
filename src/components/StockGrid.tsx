@@ -26,7 +26,7 @@ export const StockGrid: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {LEVELS.map((l) => (
+          {[...LEVELS].reverse().map((l) => ( 
             <tr key={l}>
               <th scope="row">{l}</th>
               {BAYS.map((b) => {

@@ -1,0 +1,33 @@
+import { useRouter } from "../lib/router";
+
+export function LandingPage() {
+  const { navigate } = useRouter();
+
+  return (
+    <main className="landing-page">
+      <section className="landing-card" aria-labelledby="landing-title">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">◦</span>
+          <div>
+            <p className="brand-label">Hundegger</p>
+            <h1 id="landing-title">Timber stock, simplified</h1>
+          </div>
+        </div>
+        <p className="landing-tagline">
+          Calm clarity for daily stock-takes. Review your 12&nbsp;m timber inventory with
+          intention and focus.
+        </p>
+        <button className="cta-button" onClick={() => navigate("stock")}>
+          Stock-take
+          <span aria-hidden="true" className="cta-icon">
+            →
+          </span>
+        </button>
+        <div className="landing-meta" aria-hidden="true">
+          <span>About</span>
+          <span>Settings</span>
+        </div>
+      </section>
+    </main>
+  );
+}

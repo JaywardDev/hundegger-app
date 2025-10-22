@@ -1,13 +1,34 @@
 export const SIZE_PRESETS = [
-  { id: "90x45", width_mm: 90, thickness_mm: 45 },
-  { id: "140x45", width_mm: 140, thickness_mm: 45 },
-  { id: "190x45", width_mm: 190, thickness_mm: 45 },
-  { id: "240x45", width_mm: 240, thickness_mm: 45 },
-  { id: "90x90", width_mm: 90, thickness_mm: 90 },
-  { id: "300x90", width_mm: 300, thickness_mm: 90 }
+  { id: "45x90", width_mm: 90, thickness_mm: 45 },
+  { id: "45x140", width_mm: 140, thickness_mm: 45 },
+  { id: "64x90", width_mm: 90, thickness_mm: 64 },
+  { id: "64x140", width_mm: 140, thickness_mm: 64 },
+  { id: "64x200", width_mm: 200, thickness_mm: 64 },
+  { id: "64x240", width_mm: 240, thickness_mm: 64 },
+  { id: "64x300", width_mm: 300, thickness_mm: 64 },
+  { id: "64x600", width_mm: 600, thickness_mm: 64 },
+  { id: "90x150", width_mm: 150, thickness_mm: 90 },
+  { id: "90x200", width_mm: 200, thickness_mm: 90 },
+  { id: "90x240", width_mm: 240, thickness_mm: 90 },
+  { id: "90x300", width_mm: 300, thickness_mm: 90 },
+  { id: "90x600", width_mm: 600, thickness_mm: 90 },
+  { id: "135x150", width_mm: 150, thickness_mm: 135 },
+  { id: "135x200", width_mm: 200, thickness_mm: 135 },
+  { id: "135x240", width_mm: 240, thickness_mm: 135 },
+  { id: "135x300", width_mm: 300, thickness_mm: 135 },
+  { id: "135x400", width_mm: 400, thickness_mm: 135 },
+  { id: "180x240", width_mm: 240, thickness_mm: 180 },
+  { id: "180x360", width_mm: 360, thickness_mm: 180 },
+  { id: "180x400", width_mm: 400, thickness_mm: 180 },
+];
+export const LENGTH_PRESETS_MM = [1200, 6000, 8900];
+
+export const GRADE_PRESETS = [
+    "LVL11",
+    "LVL11 visual"
 ];
 
-export const LENGTH_PRESETS_MM = [2400, 3000, 3600, 4200, 4800, 5400, 6000];
-
-export const GRADE_PRESETS = ["LVL11", "SG8", "SG10"];
-export const TREATMENT_PRESETS = ["H1.2", "H3.2"];
+export const TREATMENT_PRESETS = [
+    "H1.2",
+    "H3.2"
+];
