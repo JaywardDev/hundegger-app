@@ -14,13 +14,13 @@ type MatrixStore = {
   clearCell: (bay: Bay, level: Level) => void;
 };
 
-const buildEmptyMatrix = () => {
-  const m: Record<Bay, Record<Level, Cell | null>> = {} as any;
-  for (const b of BAYS) {
-    m[b] = {} as any;
-    for (const l of LEVELS) m[b][l] = null;
+const buildEmptyMatrix = (): Record<Bay, Record<Level, Cell | null>> => {
+  const matrix = {} as Record<Bay, Record<Level, Cell | null>>;
+  for (const bay of BAYS) {
+    matrix[bay] = {} as Record<Level, Cell | null>;
+    for (const level of LEVELS) matrix[bay][level] = null;
   }
-  return m;
+  return matrix
 };
 
 export const useMatrixStore = create<MatrixStore>((set) => ({
