@@ -1,18 +1,22 @@
-import { StockGrid } from "./components/StockGrid";
-import { HeaderBar } from "./components/HeaderBar";
-import { exportWorkbook } from "./lib/excel";
-import { useMatrixStore } from "./store/useMatrixStore";
-import { CellEditor } from "./components/CellEditor";
 import "./index.css";
+import { RouterProvider, useRouter } from "./lib/router";
+import { LandingPage } from "./pages/LandingPage";
+import { StockPage } from "./pages/StockPage";
+
+function AppRoutes() {
+  const { route } = useRouter();
+
+  if (route === "stock") {
+    return <StockPage />;
+  }
+
+  return <LandingPage />;
+}
 
 export default function App() {
-  const matrix = useMatrixStore((s) => s.matrix);
-
   return (
-    <div className="app">
-      <HeaderBar onExport={() => exportWorkbook(matrix)} />
-      <StockGrid />
-      <CellEditor />
-    </div>
+    <RouterProvider>
+      <AppRoutes />
+    </RouterProvider>
   );
 }

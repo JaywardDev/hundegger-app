@@ -4,8 +4,10 @@ import { linearMeters, cubicMeters } from "../lib/calc";
 
 export const HeaderBar: React.FC<{ onExport: () => void }> = ({ onExport }) => {
   const matrix = useMatrixStore((s) => s.matrix);
-  // quick totals
-  let pieces = 0, lm = 0, m3 = 0;
+  let pieces = 0;
+  let lm = 0;
+  let m3 = 0;
+
   for (const col of Object.values(matrix)) {
     for (const cell of Object.values(col)) {
       if (!cell) continue;
@@ -18,15 +20,28 @@ export const HeaderBar: React.FC<{ onExport: () => void }> = ({ onExport }) => {
   }
 
   return (
-    <div className="bar">
-      <h1>12m Timber Stock (10×13)</h1>
-      <div className="spacer" />
-      <div className="totals">
-        <span>Pieces: <b>{pieces}</b></span>
-        <span>Linear m: <b>{lm.toFixed(2)}</b></span>
-        <span>m³: <b>{m3.toFixed(3)}</b></span>
+    <section className="summary-card" aria-label="Stock totals and export">
+      <div className="summary-card__heading">
+        <h2>12&nbsp;m timber stock</h2>
+        <p>10 bays × 13 levels</p>
       </div>
-      <button onClick={onExport}>Export XLSX</button>
-    </div>
+      <dl className="summary-card__metrics">
+        <div>
+          <dt>Pieces</dt>
+          <dd>{pieces}</dd>
+        </div>
+        <div>
+          <dt>Linear metres</dt>
+          <dd>{lm.toFixed(2)}</dd>
+        </div>
+        <div>
+          <dt>Cubic metres</dt>
+          <dd>{m3.toFixed(3)}</dd>
+        </div>
+      </dl>
+      <button type="button" className="button button--primary" onClick={onExport}>
+        Export workbook
+      </button>
+    </section>
   );
 };
