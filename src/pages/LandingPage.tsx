@@ -17,12 +17,23 @@ export function LandingPage() {
           Calm clarity for daily stock-takes. Review your 12&nbsp;m timber inventory with
           intention and focus.
         </p>
-        <button className="cta-button" onClick={() => navigate("stock")}>
-          Stock-take
-          <span aria-hidden="true" className="cta-icon">
-            →
-          </span>
-        </button>
+        <div className="landing-actions">
+          <button className="cta-button" onClick={() => navigate("stock")}>
+            Stock-take
+            <span aria-hidden="true" className="cta-icon">
+              →
+            </span>
+          </button>
+          <button
+            className="cta-button cta-button--secondary"
+            onClick={() => navigate("operations")}
+          >
+            Operations data
+            <span aria-hidden="true" className="cta-icon">
+              →
+            </span>
+          </button>
+        </div>
         <div className="landing-meta" aria-hidden="true">
           <span>About</span>
           <span>Settings</span>
