@@ -33,7 +33,7 @@ export const StockGrid: React.FC = () => {
                 const cell = matrix[b][l];
                 const text =
                   !cell || !cell.items.length
-                    ? "—"
+                    ? ""
                     : cell.items.length === 1
                     ? `${cell.items[0].size_id} • ${cell.items[0].length_mm} • ${cell.items[0].pieces}`
                     : `${cell.items[0].size_id} • ${cell.items[0].length_mm} • ${cell.items[0].pieces} +${

@@ -15,11 +15,11 @@ export const CellEditor: React.FC = () => {
 
   const [items, setItems] = useState<StackItem[]>([
     {
-      size_id: "90x45",
+      size_id: "45x90",
       width_mm: 90,
       thickness_mm: 45,
-      length_mm: 6000,
-      grade: "SG8",
+      length_mm: 12000,
+      grade: "LVL11",
       treatment: "H1.2",
       pieces: 0
     }

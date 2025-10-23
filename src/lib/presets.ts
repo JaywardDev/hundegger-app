@@ -21,7 +21,7 @@ export const SIZE_PRESETS = [
   { id: "180x360", width_mm: 360, thickness_mm: 180 },
   { id: "180x400", width_mm: 400, thickness_mm: 180 },
 ];
-export const LENGTH_PRESETS_MM = [1200, 6000, 8900];
+export const LENGTH_PRESETS_MM = [12000, 6000, 8900];
 
 export const GRADE_PRESETS = [
     "LVL11",
