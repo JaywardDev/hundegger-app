@@ -1,32 +1,46 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/shallow";
 import { useMatrixStore } from "../store/useMatrixStore";
 import { SIZE_PRESETS, LENGTH_PRESETS_MM, GRADE_PRESETS, TREATMENT_PRESETS } from "../lib/presets";
 import type { StackItem } from "../lib/types";
 
+const createDefaultItem = (): StackItem => ({
+  size_id: "45x90",
+  width_mm: 90,
+  thickness_mm: 45,
+  length_mm: 12000,
+  grade: "LVL11",
+  treatment: "H1.2",
+  pieces: 0
+});
+
 export const CellEditor: React.FC = () => {
-  const { editor, setEditor, saveCell } = useMatrixStore(
+  const { editor, setEditor, saveCell, clearCell, matrix } = useMatrixStore(
     useShallow((s) => ({
       editor: s.editor,
       setEditor: s.setEditor,
-      saveCell: s.saveCell
+      saveCell: s.saveCell,
+      clearCell: s.clearCell,
+      matrix: s.matrix
     }))
   );
 
-  const [items, setItems] = useState<StackItem[]>([
-    {
-      size_id: "45x90",
-      width_mm: 90,
-      thickness_mm: 45,
-      length_mm: 12000,
-      grade: "LVL11",
-      treatment: "H1.2",
-      pieces: 0
-    }
-  ]);
+  const [items, setItems] = useState<StackItem[]>([createDefaultItem()]);
 
   const target = editor.target;
+  const targetBay = target?.bay;
+  const targetLevel = target?.level;  
   const open = editor.open && !!target;
+
+  useEffect(() => {
+    if (!open || !targetBay || !targetLevel) return;
+    const cell = matrix[targetBay][targetLevel];
+    if (cell && cell.items.length) {
+      setItems(cell.items.map((item) => ({ ...item })));
+    } else {
+      setItems([createDefaultItem()]);
+    }
+  }, [open, targetBay, targetLevel, matrix]);  
 
   const setItem = (idx: number, patch: Partial<StackItem>) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
@@ -34,7 +48,7 @@ export const CellEditor: React.FC = () => {
   const addItem = () =>
     setItems((prev) => [
       ...prev,
-      { ...prev[0], pieces: 0 }
+      { ...(prev[0] ?? createDefaultItem()), pieces: 0 }
     ]);
 
   const removeItem = (idx: number) => setItems((p) => p.filter((_, i) => i !== idx));
@@ -170,6 +184,18 @@ export const CellEditor: React.FC = () => {
           <button type="button" className="button button--ghost" onClick={addItem}>
             + Add item
           </button>
+          <button
+            type="button"
+            className="button button--ghost button--danger"
+            disabled={!matrix[target.bay][target.level]}
+            onClick={() => {
+              clearCell(target.bay, target.level);
+              setItems([createDefaultItem()]);
+              setEditor({ open: false });
+            }}
+          >
+            Clear cell
+          </button>          
           <div className="spacer" />
           <button
             type="button"
