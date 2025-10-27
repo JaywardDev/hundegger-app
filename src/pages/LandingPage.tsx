@@ -9,13 +9,12 @@ export function LandingPage() {
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">◦</span>
           <div>
-            <p className="brand-label">Hundegger</p>
-            <h1 id="landing-title">Timber stock, simplified</h1>
+            <p className="brand-label">Hector Egger NZ</p>
+            <h1 id="landing-title">HUNDEGGER</h1>
           </div>
         </div>
         <p className="landing-tagline">
-          Calm clarity for daily stock-takes. Review your 12&nbsp;m timber inventory with
-          intention and focus.
+          Your timber management solution and operations data hub.
         </p>
         <div className="landing-actions">
           <button className="cta-button" onClick={() => navigate("stock")}>
@@ -28,7 +27,7 @@ export function LandingPage() {
             className="cta-button cta-button--secondary"
             onClick={() => navigate("operations")}
           >
-            Operations data
+            Operations
             <span aria-hidden="true" className="cta-icon">
               →
             </span>

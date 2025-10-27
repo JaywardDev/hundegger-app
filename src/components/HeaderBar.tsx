@@ -23,7 +23,7 @@ export const HeaderBar: React.FC<{ onExport: () => void }> = ({ onExport }) => {
     <section className="summary-card" aria-label="Stock totals and export">
       <div className="summary-card__heading">
         <h2>12&nbsp;m timber stock</h2>
-        <p>10 bays × 13 levels</p>
+        <p>13 bays × 10 levels</p>
       </div>
       <dl className="summary-card__metrics">
         <div>
