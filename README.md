@@ -38,8 +38,25 @@ VITE_MATRIX_API_URL=http://matrix-pc:4000 npm run dev
 
 ## Production notes
 
-- Keep the API process running on the always-on factory PC (Task Scheduler,
-systemd, PM2, etc.).
+Build the frontend bundle once and let the Node.js service serve the compiled
+files alongside the JSON API:
+
+```bash
+npm run build
+```
+
+Then start the production server:
+
+```bash
+MATRIX_SERVER_PORT=4000 node server/index.js
+```
+
+The process serves the static files from `dist/` and exposes the matrix API on
+the same host, so PCs and tablets on the LAN can simply load
+`http://<hostname>:4000`. Configure the process with Task Scheduler, systemd,
+PM2, or a similar tool so it starts automatically on boot.
+
+Additional recommendations:
 - Share the `server/data/matrix.json` file as part of your backup routine.
-- The tablet and desktop browsers can point to the same LAN hostname to stay in
-sync automatically.
+- Reverse proxy (nginx, Caddy, etc.) if you need HTTPS, otherwise the built-in
+  server is sufficient for LAN usage.
