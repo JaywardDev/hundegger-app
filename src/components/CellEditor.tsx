@@ -15,13 +15,14 @@ const createDefaultItem = (): StackItem => ({
 });
 
 export const CellEditor: React.FC = () => {
-  const { editor, setEditor, saveCell, clearCell, matrix } = useMatrixStore(
+  const { editor, setEditor, saveCell, clearCell, matrix, syncing } = useMatrixStore(
     useShallow((s) => ({
       editor: s.editor,
       setEditor: s.setEditor,
       saveCell: s.saveCell,
       clearCell: s.clearCell,
-      matrix: s.matrix
+      matrix: s.matrix,
+      syncing: s.syncing
     }))
   );
 
@@ -187,9 +188,9 @@ export const CellEditor: React.FC = () => {
           <button
             type="button"
             className="button button--ghost button--danger"
-            disabled={!matrix[target.bay][target.level]}
+            disabled={!matrix[target.bay][target.level] || syncing}
             onClick={() => {
-              clearCell(target.bay, target.level);
+              void clearCell(target.bay, target.level);
               setItems([createDefaultItem()]);
               setEditor({ open: false });
             }}
@@ -200,8 +201,8 @@ export const CellEditor: React.FC = () => {
           <button
             type="button"
             className="button button--primary"
-            disabled={!canSave}
-            onClick={() => saveCell(target.bay, target.level, items)}
+            disabled={!canSave || syncing}
+            onClick={() => void saveCell(target.bay, target.level, items)}
           >
             Save
           </button>
