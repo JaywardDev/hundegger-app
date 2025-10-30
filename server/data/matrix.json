@@ -144,8 +144,41 @@
     "L10": null
   },
   "B13": {
-    "L01": null,
-    "L02": null,
+    "L01": {
+      "bay": "B13",
+      "level": "L01",
+      "items": [
+        {
+          "size_id": "64x90",
+          "width_mm": 90,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 65,
+          "bundle_id": "119544"
+        }
+      ],
+      "updated_by": "JAY",
+      "updated_at": "2025-10-30T20:17:38.244Z"
+    },
+    "L02": {
+      "bay": "B13",
+      "level": "L02",
+      "items": [
+        {
+          "size_id": "64x90",
+          "width_mm": 90,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 65
+        }
+      ],
+      "updated_by": "JAY",
+      "updated_at": "2025-10-30T20:18:01.691Z"
+    },
     "L03": null,
     "L04": null,
     "L05": null,
