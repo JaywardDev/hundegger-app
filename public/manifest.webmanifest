@@ -1,8 +1,8 @@
 {
-  "name": "Hundegger",
+  "name": "Hundegger App",
   "short_name": "Hundegger",
-  "description": "Shortcut-ready placeholder manifest for the Hundegger application.",
-  "start_url": ".",
+  "description": "Factory stock and operations tracking system for Hundegger.",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0F4C81",
   "theme_color": "#0F4C81",
@@ -13,15 +13,15 @@
       "type": "image/png"
     },
     {
-      "src": "/images/hundegger-icon-192.png",
-      "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/images/hundegger-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     },
     {
       "src": "/images/hundegger-icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
