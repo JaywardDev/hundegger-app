@@ -34,6 +34,19 @@ export function StockPage() {
     void loadMatrix();
   }, [loadMatrix]);
 
+  useEffect(() => {
+    const handlePageHide = () => {
+      disableEditing();
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      disableEditing();
+    };
+  }, [disableEditing]);  
+
   const statusMessage = loading ? "Loading matrix…" : syncing ? "Saving changes…" : undefined;
   const editingLabel = useMemo(() => {
     if (!editingEnabled || !currentUser) return "Editing locked";
