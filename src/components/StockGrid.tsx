@@ -6,15 +6,17 @@ import { BAYS, LEVELS, type Bay, type Level } from "../lib/types";
 const cellLabel = (bay: Bay, level: Level) => `${bay} • ${level}`;
 
 export const StockGrid: React.FC = () => {
-  const { matrix, setEditor } = useMatrixStore(
+  const { matrix, setEditor, editingEnabled } = useMatrixStore(
     useShallow((s) => ({
       matrix: s.matrix,
-      setEditor: s.setEditor
+      setEditor: s.setEditor,
+      editingEnabled: s.editingEnabled
     }))
   );
+  const gridClassName = editingEnabled ? "grid" : "grid grid--locked";  
   return (
     <div className="grid-wrap">
-      <table className="grid" aria-label="Timber stock matrix">
+      <table className={gridClassName} aria-label="Timber stock matrix">
         <thead>
           <tr>
             <th scope="col" aria-hidden="true" />
@@ -40,8 +42,10 @@ export const StockGrid: React.FC = () => {
                         cell.items.length - 1
                       }`;
 
-                const openEditor = () =>
+                const openEditor = () => {
+                  if (!editingEnabled) return;
                   setEditor({ open: true, target: { bay: b, level: l } });
+                };
 
                 return (
                   <td
@@ -56,7 +60,8 @@ export const StockGrid: React.FC = () => {
                       }
                     }}
                     role="button"
-                    tabIndex={0}
+                    tabIndex={editingEnabled ? 0 : -1}
+                    aria-disabled={!editingEnabled}
                     aria-label={`Edit ${cellLabel(b, l)}`}
                   >
                     {text}

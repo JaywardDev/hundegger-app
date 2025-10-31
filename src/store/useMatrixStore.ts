@@ -12,6 +12,7 @@ import {
   persistMatrix,
   type MatrixPayload
 } from "../lib/api";
+import type { AuthenticatedUser } from "../lib/users";
 
 type EditorState = {
   open: boolean;
@@ -24,8 +25,12 @@ type MatrixStore = {
   loading: boolean;
   loaded: boolean;
   syncing: boolean;
-  error?: string;  
+  error?: string;
+  editingEnabled: boolean;
+  currentUser?: AuthenticatedUser; 
   setEditor: (editor: EditorState) => void;
+  enableEditing: (user: AuthenticatedUser) => void;
+  disableEditing: () => void;  
   loadMatrix: () => Promise<void>;
   reloadMatrix: () => Promise<void>;
   saveCell: (bay: Bay, level: Level, items: StackItem[]) => Promise<void>;
@@ -77,7 +82,17 @@ export const useMatrixStore = create<MatrixStore>()((set, get) => {
     loading: false,
     loaded: false,
     syncing: false,
-    setEditor: (editor) => set({ editor }),
+    editingEnabled: false,
+    setEditor: (editor) =>
+      set((state) => {
+        if (editor.open && !state.editingEnabled) {
+          return { editor: { open: false } };
+        }
+        return { editor };
+      }),
+    enableEditing: (user) =>
+      set({ editingEnabled: true, currentUser: user, editor: { open: false } }),
+    disableEditing: () => set({ editingEnabled: false, currentUser: undefined, editor: { open: false } }),
     loadMatrix: async () => {
       const state = get();
       if (state.loaded || state.loading) return;
@@ -100,13 +115,14 @@ export const useMatrixStore = create<MatrixStore>()((set, get) => {
     },
     saveCell: async (bay, level, items) => {
       const current = get().matrix;
+      const user = get().currentUser;
       const previous = structuredClone(current);
       const next = structuredClone(current);
       const cell: Cell = {
         bay,
         level,
         items,
-        updated_by: "JAY", // TODO: replace with PIN user
+        updated_by: user ? `${user.name} (${user.title})` : "Unknown user",
         updated_at: new Date().toISOString()
       };
       next[bay][level] = cell;
