@@ -10,7 +10,9 @@ export async function exportWorkbook(matrix: Record<Bay, Record<Level, Cell | nu
   // Headers
   ws1.getCell(1, 1).value = "";
   BAYS.forEach((bay, idx) => ws1.getCell(1, 2 + idx).value = bay);
-  LEVELS.forEach((lvl, r) => {
+  const levelOrder = [...LEVELS].reverse();
+
+  levelOrder.forEach((lvl, r) => {
     ws1.getCell(2 + r, 1).value = lvl;
     BAYS.forEach((bay, c) => {
       const cell = matrix[bay][lvl];
@@ -41,7 +43,7 @@ export async function exportWorkbook(matrix: Record<Bay, Record<Level, Cell | nu
   ws2.addRow(headers);
 
   for (const bay of BAYS) {
-    for (const level of LEVELS) {
+    for (const level of levelOrder) {
       const cell = matrix[bay][level];
       if (!cell) continue;
       for (const it of cell.items) {
