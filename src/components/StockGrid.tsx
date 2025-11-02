@@ -203,7 +203,6 @@ const StackTimber: React.FC<StackTimberProps> = ({
           ? "none"
           : "transform 600ms cubic-bezier(0.19, 1, 0.22, 1)"
       }}
-      onClick={() => editingEnabled && onOpenEditor(bay, level)}
       onPointerDown={(event) => {
         if (!editingEnabled) return;
         onPointerDown?.(event, visual);
@@ -219,7 +218,19 @@ const StackTimber: React.FC<StackTimberProps> = ({
       onPointerCancel={(event) => {
         if (!editingEnabled) return;
         onPointerUp?.(event, visual);
-      }}      
+      }}
+      onDoubleClick={(event) => {
+        if (!editingEnabled) return;
+        event.preventDefault();
+        onOpenEditor(bay, level);
+      }}
+      onKeyDown={(event) => {
+        if (!editingEnabled) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpenEditor(bay, level);
+        }
+      }}
       onTransitionEnd={handleTransitionEnd}
       disabled={!editingEnabled}
       aria-label={`Edit ${bay} ${level}`}
@@ -250,7 +261,8 @@ export const StockGrid: React.FC = () => {
   const hydratedRef = React.useRef(false);
   const gridClassName = editingEnabled ? "stack-grid" : "stack-grid stack-grid--locked";
   const [dragState, setDragState] = React.useState<DragState | null>(null);
-  const dragPreventClickRef = React.useRef(false);  
+  const dragPreventClickRef = React.useRef(false);
+  const lastTouchTapRef = React.useRef<{ time: number; id: string } | null>(null);
 
   const openEditor = React.useCallback(
     (bay: Bay, level: Level, intent: "add" | "edit") => {
@@ -426,6 +438,8 @@ export const StockGrid: React.FC = () => {
 
   const handleDragEnd = React.useCallback(
     (event: React.PointerEvent<HTMLButtonElement>, stack: VisualStack) => {
+      let shouldRequestEdit = false;
+
       setDragState((state) => {
         if (!state || state.id !== stack.id) return state;
         if (event.currentTarget.hasPointerCapture(state.pointerId)) {
@@ -446,14 +460,34 @@ export const StockGrid: React.FC = () => {
             .map((item) => item.id);
           void reorderBay(stack.bay, activeStacks);
           dragPreventClickRef.current = true;
+          lastTouchTapRef.current = null;          
         } else {
           dragPreventClickRef.current = false;
+
+          if (event.pointerType === "touch") {
+            const now = Date.now();
+            const tapId = stack.id;
+            const lastTap = lastTouchTapRef.current;
+
+            if (lastTap && lastTap.id === tapId && now - lastTap.time < 350) {
+              shouldRequestEdit = true;
+              lastTouchTapRef.current = null;
+            } else {
+              lastTouchTapRef.current = { time: now, id: tapId };
+            }
+          } else {
+            lastTouchTapRef.current = null;
+          }          
         }
 
         return null;
       });
+
+      if (shouldRequestEdit) {
+        handleEditStack(stack.bay, stack.level);
+      }
     },
-    [reorderBay, setColumns]
+    [handleEditStack, reorderBay, setColumns]
   );
 
   const handleEnterComplete = React.useCallback((bay: Bay, id: string) => {
