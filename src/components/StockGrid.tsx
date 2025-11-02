@@ -28,7 +28,21 @@ type VisualStack = {
 
 type ColumnState = Record<Bay, VisualStack[]>;
 
-const buildStackId = (cell: Cell) => `${cell.bay}-${cell.level}-${cell.updated_at}`;
+type DragState = {
+  bay: Bay;
+  id: string;
+  pointerId: number;
+  startY: number;
+  originIndex: number;
+  currentIndex: number;
+  offset: number;
+  hasMoved: boolean;
+};
+
+const CELL_ID_SEPARATOR = "::";
+
+const buildStackId = (cell: Cell) =>
+  `${cell.bay}${CELL_ID_SEPARATOR}${cell.level}${CELL_ID_SEPARATOR}${cell.updated_at}`;
 
 const buildInitialColumns = (matrix: MatrixPayload): ColumnState => {
   const columns = {} as ColumnState;
@@ -53,12 +67,48 @@ const buildInitialColumns = (matrix: MatrixPayload): ColumnState => {
   return columns;
 };
 
+const moveItem = <T,>(array: T[], from: number, to: number) => {
+  if (from === to) return array;
+  const copy = [...array];
+  const [item] = copy.splice(from, 1);
+  copy.splice(to, 0, item);
+  return copy;
+};
+
+const composeColumn = (active: VisualStack[], exiting: VisualStack[]) => {
+  const next: VisualStack[] = [];
+  active.forEach((stack, index) => {
+    next.push({ ...stack, position: index, phase: stack.phase });
+  });
+  exiting.forEach((stack, index) => {
+    next.push({ ...stack, position: active.length + index });
+  });
+  return next;
+};
+
+const clampIndex = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+
 type StackTimberProps = {
   visual: VisualStack;
   editingEnabled: boolean;
   onOpenEditor: (bay: Bay, level: Level) => void;
   onEnterComplete: (bay: Bay, id: string) => void;
   onExitComplete: (bay: Bay, id: string) => void;
+  onPointerDown?: (
+    event: React.PointerEvent<HTMLButtonElement>,
+    stack: VisualStack
+  ) => void;
+  onPointerMove?: (
+    event: React.PointerEvent<HTMLButtonElement>,
+    stack: VisualStack
+  ) => void;
+  onPointerUp?: (
+    event: React.PointerEvent<HTMLButtonElement>,
+    stack: VisualStack
+  ) => void;
+  isDragging?: boolean;
+  dragOffset?: number;  
 };
 
 const StackTimber: React.FC<StackTimberProps> = ({
@@ -66,7 +116,12 @@ const StackTimber: React.FC<StackTimberProps> = ({
   editingEnabled,
   onOpenEditor,
   onEnterComplete,
-  onExitComplete
+  onExitComplete,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  isDragging,
+  dragOffset
 }) => {
   const { bay, level, cell, position, phase, id } = visual;
   const [dropStage, setDropStage] = React.useState<"start" | "settling">(
@@ -102,9 +157,9 @@ const StackTimber: React.FC<StackTimberProps> = ({
   }, []);
 
   const baseTranslate = -position * TIMBER_STEP;
-  const translateY =
-    baseTranslate - (phase === "enter" && dropStage === "start" ? STACK_FALL_DISTANCE : 0);
-  const disableTransition = phase === "enter" && dropStage === "start";
+  const enterOffset = phase === "enter" && dropStage === "start" ? STACK_FALL_DISTANCE : 0;
+  const translateY = baseTranslate - enterOffset + (isDragging ? dragOffset ?? 0 : 0);
+  const disableTransition = (phase === "enter" && dropStage === "start") || !!isDragging;
 
   const handleTransitionEnd = (event: React.TransitionEvent<HTMLButtonElement>) => {
     if (event.propertyName !== "transform") return;
@@ -137,7 +192,9 @@ const StackTimber: React.FC<StackTimberProps> = ({
   return (
     <button
       type="button"
-      className={`stack-timber${phase === "exit" ? " stack-timber--exiting" : ""}`}
+      className={`stack-timber${phase === "exit" ? " stack-timber--exiting" : ""}${
+        isDragging ? " stack-timber--dragging" : ""
+      }`}
       style={{
         height: `${TIMBER_HEIGHT}px`,
         bottom: `${STACK_BASE_OFFSET}px`,
@@ -147,6 +204,22 @@ const StackTimber: React.FC<StackTimberProps> = ({
           : "transform 600ms cubic-bezier(0.19, 1, 0.22, 1)"
       }}
       onClick={() => editingEnabled && onOpenEditor(bay, level)}
+      onPointerDown={(event) => {
+        if (!editingEnabled) return;
+        onPointerDown?.(event, visual);
+      }}
+      onPointerMove={(event) => {
+        if (!editingEnabled) return;
+        onPointerMove?.(event, visual);
+      }}
+      onPointerUp={(event) => {
+        if (!editingEnabled) return;
+        onPointerUp?.(event, visual);
+      }}
+      onPointerCancel={(event) => {
+        if (!editingEnabled) return;
+        onPointerUp?.(event, visual);
+      }}      
       onTransitionEnd={handleTransitionEnd}
       disabled={!editingEnabled}
       aria-label={`Edit ${bay} ${level}`}
@@ -161,24 +234,55 @@ const StackTimber: React.FC<StackTimberProps> = ({
 };
 
 export const StockGrid: React.FC = () => {
-  const { matrix, setEditor, editingEnabled } = useMatrixStore(
+  const { matrix, setEditor, editingEnabled, reorderBay } = useMatrixStore(
     useShallow((state) => ({
       matrix: state.matrix,
       setEditor: state.setEditor,
-      editingEnabled: state.editingEnabled
+      editingEnabled: state.editingEnabled,
+      reorderBay: state.reorderBay
     }))
   );
   const [columns, setColumns] = React.useState<ColumnState>(() => buildInitialColumns(matrix));
+  const columnsRef = React.useRef(columns);
+  React.useEffect(() => {
+    columnsRef.current = columns;
+  }, [columns]);  
   const hydratedRef = React.useRef(false);
   const gridClassName = editingEnabled ? "stack-grid" : "stack-grid stack-grid--locked";
+  const [dragState, setDragState] = React.useState<DragState | null>(null);
+  const dragPreventClickRef = React.useRef(false);  
 
   const openEditor = React.useCallback(
-    (bay: Bay, level: Level) => {
+    (bay: Bay, level: Level, intent: "add" | "edit") => {
       if (!editingEnabled) return;
-      setEditor({ open: true, target: { bay, level } });
+      setEditor({ open: true, target: { bay, level }, intent });
     },
     [editingEnabled, setEditor]
   );
+
+  const handleEditStack = React.useCallback(
+    (bay: Bay, level: Level) => {
+      if (dragPreventClickRef.current) {
+        dragPreventClickRef.current = false;
+        return;
+      }
+      openEditor(bay, level, "edit");
+    },
+    [openEditor]
+  );
+
+  const handleAddStack = React.useCallback(
+    (bay: Bay) => {
+      if (!editingEnabled) return;
+      const availableLevel = LEVELS.find((level) => {
+        const cell = matrix[bay][level];
+        return !cell || !cell.items.length;
+      });
+      if (!availableLevel) return;
+      openEditor(bay, availableLevel, "add");
+    },
+    [editingEnabled, matrix, openEditor]
+  );  
 
   React.useEffect(() => {
     setColumns((previous) => {
@@ -243,6 +347,115 @@ export const StockGrid: React.FC = () => {
     });
   }, [matrix]);
 
+  React.useEffect(() => {
+    setDragState(null);
+    dragPreventClickRef.current = false;
+  }, [matrix]);
+
+  const handleDragStart = React.useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>, stack: VisualStack) => {
+      if (!editingEnabled || stack.phase === "exit") return;
+      const columnStacks = columnsRef.current[stack.bay] ?? [];
+      const activeStacks = columnStacks.filter((item) => item.phase !== "exit");
+      const index = activeStacks.findIndex((item) => item.id === stack.id);
+      if (index === -1) return;
+      dragPreventClickRef.current = false;
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setDragState({
+        bay: stack.bay,
+        id: stack.id,
+        pointerId: event.pointerId,
+        startY: event.clientY,
+        originIndex: index,
+        currentIndex: index,
+        offset: 0,
+        hasMoved: false
+      });
+    },
+    [editingEnabled]
+  );
+
+  const handleDragMove = React.useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>, stack: VisualStack) => {
+      if (!editingEnabled) return;
+      setDragState((state) => {
+        if (!state || state.id !== stack.id) return state;
+        const columnStacks = columnsRef.current[stack.bay] ?? [];
+        const activeStacks = columnStacks.filter((item) => item.phase !== "exit");
+        if (activeStacks.length <= 1) {
+          return { ...state, offset: event.clientY - state.startY };
+        }
+
+        const delta = event.clientY - state.startY;
+        if (Math.abs(delta) > 4) dragPreventClickRef.current = true;
+
+        const displacement = Math.round(-delta / TIMBER_STEP);
+        let targetIndex = state.originIndex + displacement;
+        targetIndex = clampIndex(targetIndex, 0, activeStacks.length - 1);
+
+        const currentIndex = activeStacks.findIndex((item) => item.id === stack.id);
+        const fromIndex = currentIndex === -1 ? state.currentIndex : currentIndex;
+
+        if (targetIndex !== fromIndex) {
+          setColumns((prev) => {
+            const prevColumn = prev[stack.bay] ?? [];
+            const active = prevColumn.filter((item) => item.phase !== "exit");
+            const exiting = prevColumn.filter((item) => item.phase === "exit");
+            const sourceIndex = active.findIndex((item) => item.id === stack.id);
+            if (sourceIndex === -1) return prev;
+            const reordered = moveItem(active, sourceIndex, targetIndex);
+            const composed = composeColumn(reordered, exiting);
+            return { ...prev, [stack.bay]: composed };
+          });
+          return {
+            ...state,
+            startY: event.clientY,
+            originIndex: targetIndex,
+            currentIndex: targetIndex,
+            offset: 0,
+            hasMoved: true
+          };
+        }
+
+        return { ...state, offset: delta };
+      });
+    },
+    [editingEnabled, setColumns]
+  );
+
+  const handleDragEnd = React.useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>, stack: VisualStack) => {
+      setDragState((state) => {
+        if (!state || state.id !== stack.id) return state;
+        if (event.currentTarget.hasPointerCapture(state.pointerId)) {
+          event.currentTarget.releasePointerCapture(state.pointerId);
+        }
+
+        setColumns((prev) => {
+          const prevColumn = prev[stack.bay] ?? [];
+          const active = prevColumn.filter((item) => item.phase !== "exit");
+          const exiting = prevColumn.filter((item) => item.phase === "exit");
+          return { ...prev, [stack.bay]: composeColumn(active, exiting) };
+        });
+
+        if (state.hasMoved) {
+          const columnStacks = columnsRef.current[stack.bay] ?? [];
+          const activeStacks = columnStacks
+            .filter((item) => item.phase !== "exit")
+            .map((item) => item.id);
+          void reorderBay(stack.bay, activeStacks);
+          dragPreventClickRef.current = true;
+        } else {
+          dragPreventClickRef.current = false;
+        }
+
+        return null;
+      });
+    },
+    [reorderBay, setColumns]
+  );
+
   const handleEnterComplete = React.useCallback((bay: Bay, id: string) => {
     setColumns((prev) => {
       const column = prev[bay];
@@ -274,51 +487,53 @@ export const StockGrid: React.FC = () => {
       <div className={gridClassName}>
         {BAYS.map((bay) => {
           const columnStacks = columns[bay] ?? [];
+          const activeStacks = columnStacks.filter((stack) => stack.phase !== "exit");
+          const canAdd = LEVELS.some((level) => {
+            const cell = matrix[bay][level];
+            return !cell || !cell.items.length;
+          });          
           return (
             <div key={bay} className="stack-column" role="group" aria-label={`Bay ${bay}`}>
               <header className="stack-column__header">
                 <span className="stack-column__title">{bay}</span>
-                <span className="stack-column__count" aria-hidden="true">
-                  {columnStacks.filter((stack) => stack.phase !== "exit").length}
-                </span>
+                <div className="stack-column__actions">
+                  <span className="stack-column__count" aria-hidden="true">
+                    {activeStacks.length}
+                  </span>
+                  <button
+                    type="button"
+                    className="stack-column__add"
+                    onClick={() => handleAddStack(bay)}
+                    disabled={!editingEnabled || !canAdd}
+                    aria-label={`Add timber to bay ${bay}`}
+                  >
+                    +
+                  </button>
+                </div>
               </header>
               <div className="stack-column__stage" style={{ height: `${STAGE_HEIGHT}px` }}>
-                <div className="stack-column__levels" aria-hidden="true">
-                  {LEVELS.map((level, index) => {
-                    const levelCell = matrix[bay][level];
-                    const isFilled = !!levelCell && !!levelCell.items.length;
-                    const markerBottom =
-                      STACK_BASE_OFFSET + index * TIMBER_STEP + TIMBER_HEIGHT / 2;
-                    const markerClass = `stack-level-marker${
-                      isFilled ? " stack-level-marker--filled" : ""
-                    }${editingEnabled ? "" : " stack-level-marker--disabled"}`;
-                    const label = isFilled
-                      ? `Edit ${bay} ${level}`
-                      : `Add timber to ${bay} ${level}`;
-                    return (
-                      <button
-                        key={level}
-                        type="button"
-                        className={markerClass}
-                        style={{ bottom: `${markerBottom}px` }}
-                        onClick={() => openEditor(bay, level)}
-                        disabled={!editingEnabled}
-                        aria-label={label}
-                      >
-                        <span className="visually-hidden">{label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
                 <div className="stack-column__arena">
                   {columnStacks.map((stack) => (
                     <StackTimber
                       key={stack.id}
                       visual={stack}
-                      editingEnabled={editingEnabled}
-                      onOpenEditor={openEditor}
+                      editingEnabled={editingEnabled && stack.phase !== "exit"}
+                      onOpenEditor={handleEditStack}
                       onEnterComplete={handleEnterComplete}
                       onExitComplete={handleExitComplete}
+                      onPointerDown={stack.phase !== "exit" ? handleDragStart : undefined}
+                      onPointerMove={stack.phase !== "exit" ? handleDragMove : undefined}
+                      onPointerUp={stack.phase !== "exit" ? handleDragEnd : undefined}
+                      isDragging={
+                        stack.phase !== "exit" &&
+                        dragState?.id === stack.id &&
+                        dragState?.bay === bay
+                      }
+                      dragOffset={
+                        stack.phase !== "exit" && dragState?.id === stack.id
+                          ? dragState?.offset ?? 0
+                          : 0
+                      }                      
                     />
                   ))}
                   <div className="stack-column__base" aria-hidden="true" />

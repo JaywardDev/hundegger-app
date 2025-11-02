@@ -14,9 +14,12 @@ import {
 } from "../lib/api";
 import type { AuthenticatedUser } from "../lib/users";
 
+type EditorIntent = "add" | "edit";
+
 type EditorState = {
   open: boolean;
   target?: { bay: Bay; level: Level };
+  intent?: EditorIntent;
 };
 
 type MatrixStore = {
@@ -30,11 +33,17 @@ type MatrixStore = {
   currentUser?: AuthenticatedUser; 
   setEditor: (editor: EditorState) => void;
   enableEditing: (user: AuthenticatedUser) => void;
-  disableEditing: () => void;  
+  disableEditing: () => void;
   loadMatrix: () => Promise<void>;
   reloadMatrix: () => Promise<void>;
-  saveCell: (bay: Bay, level: Level, items: StackItem[]) => Promise<void>;
+  saveCell: (
+    bay: Bay,
+    level: Level,
+    items: StackItem[],
+    options?: { moveToTop?: boolean; moveTo?: boolean }
+  ) => Promise<void>;
   clearCell: (bay: Bay, level: Level) => Promise<void>;
+  reorderBay: (bay: Bay, orderedIds: string[]) => Promise<void>;
 };
 
 const buildEmptyMatrix = (): MatrixPayload => {
@@ -60,6 +69,32 @@ const ensureMatrixShape = (
     }
   }
   return next;
+};
+
+const CELL_ID_SEPARATOR = "::";
+
+const buildCellId = (cell: Cell) =>
+  `${cell.bay}${CELL_ID_SEPARATOR}${cell.level}${CELL_ID_SEPARATOR}${cell.updated_at}`;
+
+const rebuildBayLevels = (
+  bay: Bay,
+  cells: (Cell | null)[],
+  base: Record<Level, Cell | null>
+) => {
+  const nextColumn = {} as Record<Level, Cell | null>;
+  for (const level of LEVELS) {
+    nextColumn[level] = null;
+  }
+
+  cells.forEach((cell, index) => {
+    if (!cell) return;
+    const level = LEVELS[index];
+    const source = base[cell.level];
+    const payload = source ? { ...source, ...cell } : cell;
+    nextColumn[level] = { ...payload, bay, level };
+  });
+
+  return nextColumn;
 };
 
 export const useMatrixStore = create<MatrixStore>()((set, get) => {
@@ -113,7 +148,7 @@ export const useMatrixStore = create<MatrixStore>()((set, get) => {
         set({ loading: false, loaded: true, error: message });
       }
     },
-    saveCell: async (bay, level, items) => {
+    saveCell: async (bay, level, items, options) => {
       const current = get().matrix;
       const user = get().currentUser;
       const previous = structuredClone(current);
@@ -126,6 +161,21 @@ export const useMatrixStore = create<MatrixStore>()((set, get) => {
         updated_at: new Date().toISOString()
       };
       next[bay][level] = cell;
+
+      if (options?.moveToTop) {
+        const orderedCells = LEVELS.map((lvl) => next[bay][lvl]).filter(
+          (value): value is Cell => !!value
+        );
+        const targetIndex = orderedCells.findIndex(
+          (entry) => entry.updated_at === cell.updated_at
+        );
+        if (targetIndex !== -1) {
+          const [targetCell] = orderedCells.splice(targetIndex, 1);
+          orderedCells.push(targetCell);
+          next[bay] = rebuildBayLevels(bay, orderedCells, next[bay]);
+        }
+      }
+
       set({ matrix: next, editor: { open: false } });
       try {
         await pushMatrix(next);
@@ -138,6 +188,36 @@ export const useMatrixStore = create<MatrixStore>()((set, get) => {
       const previous = structuredClone(current);
       const next = structuredClone(current);
       next[bay][level] = null;
+      set({ matrix: next });
+      try {
+        await pushMatrix(next);
+      } catch {
+        set({ matrix: previous });
+      }
+    },
+    reorderBay: async (bay, orderedIds) => {
+      const current = get().matrix;
+      const previous = structuredClone(current);
+      const next = structuredClone(current);
+
+      const existingCells = LEVELS.map((level) => next[bay][level]).filter(
+        (value): value is Cell => !!value
+      );
+
+      const idToCell = new Map(existingCells.map((cell) => [buildCellId(cell), cell]));
+      const orderedCells: (Cell | null)[] = [];
+      for (const id of orderedIds) {
+        const cell = idToCell.get(id);
+        if (cell) {
+          orderedCells.push(cell);
+          idToCell.delete(id);
+        }
+      }
+
+      for (const cell of idToCell.values()) orderedCells.push(cell);
+
+      next[bay] = rebuildBayLevels(bay, orderedCells, next[bay]);
+
       set({ matrix: next });
       try {
         await pushMatrix(next);

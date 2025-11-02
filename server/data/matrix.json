@@ -111,7 +111,23 @@
       "updated_by": "JAY",
       "updated_at": "2025-10-30T22:57:28.126Z"
     },
-    "L04": null,
+    "L04": {
+      "bay": "B02",
+      "level": "L04",
+      "items": [
+        {
+          "size_id": "45x90",
+          "width_mm": 90,
+          "thickness_mm": 45,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 91
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-02T00:19:53.237Z"
+    },
     "L05": null,
     "L06": null,
     "L07": null,

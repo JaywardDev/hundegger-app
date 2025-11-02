@@ -27,10 +27,11 @@ export const CellEditor: React.FC = () => {
   );
 
   const [items, setItems] = useState<StackItem[]>([createDefaultItem()]);
+    const [initiallyEmpty, setInitiallyEmpty] = useState(true);
 
   const target = editor.target;
   const targetBay = target?.bay;
-  const targetLevel = target?.level;  
+  const targetLevel = target?.level;
   const open = editor.open && !!target;
 
   useEffect(() => {
@@ -38,10 +39,12 @@ export const CellEditor: React.FC = () => {
     const cell = matrix[targetBay][targetLevel];
     if (cell && cell.items.length) {
       setItems(cell.items.map((item) => ({ ...item })));
+      setInitiallyEmpty(false);
     } else {
       setItems([createDefaultItem()]);
+      setInitiallyEmpty(true);
     }
-  }, [open, targetBay, targetLevel, matrix]);  
+  }, [open, targetBay, targetLevel, matrix]);
 
   const setItem = (idx: number, patch: Partial<StackItem>) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
@@ -202,7 +205,11 @@ export const CellEditor: React.FC = () => {
             type="button"
             className="button button--primary"
             disabled={!canSave || syncing}
-            onClick={() => void saveCell(target.bay, target.level, items)}
+            onClick={() =>
+              void saveCell(target.bay, target.level, items, {
+                moveTo: editor.intent === "add" && initiallyEmpty
+              })
+            }
           >
             Save
           </button>
