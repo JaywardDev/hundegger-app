@@ -893,47 +893,30 @@ input:focus {
 }
 
 .stack-timber--matched .stack-timber__inner {
-  box-shadow:
-    0 26px 34px -28px rgba(26, 40, 33, 0.9),
-    0 12px 24px -18px rgba(46, 31, 18, 0.62),
-    inset 0 2px 0 rgba(255, 255, 255, 0.38),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
-    0 0 0 3px rgba(117, 201, 178, 0.65),
-    0 0 30px rgba(117, 201, 178, 0.55);
-  filter: saturate(1.12) brightness(1.05);
+  box-shadow: 0 26px 34px -28px rgba(26, 40, 33, 0.9),
+    0 12px 24px -18px rgba(46, 31, 18, 0.62), inset 0 2px 0 rgba(255, 255, 255, 0.38),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+  filter: none;
 }
 
 .stack-timber--matched .stack-timber__inner::after {
-  content: "";
-  position: absolute;
-  inset: -3px;
-  border-radius: inherit;
-  background: radial-gradient(80% 120% at 50% 60%, rgba(117, 201, 178, 0.55), rgba(117, 201, 178, 0));
-  opacity: 0.45;
-  pointer-events: none;
-  mix-blend-mode: screen;
-  animation: stack-timber-glow 2400ms ease-in-out infinite alternate;
-  z-index: 1;
+  content: none;
 }
 
 .stack-timber--matched:not(:disabled):hover .stack-timber__inner,
 .stack-timber--matched:not(:disabled):focus-visible .stack-timber__inner {
-  box-shadow:
-    0 34px 40px -30px rgba(30, 52, 43, 0.88),
-    0 18px 28px -18px rgba(46, 31, 18, 0.6),
-    inset 0 2px 0 rgba(255, 255, 255, 0.6),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.22),
-    0 0 0 3px rgba(117, 201, 178, 0.68),
-    0 0 34px rgba(117, 201, 178, 0.6);
-  filter: saturate(1.16) brightness(1.07);
+  box-shadow: 0 34px 40px -30px rgba(30, 52, 43, 0.88),
+    0 18px 28px -18px rgba(46, 31, 18, 0.6), inset 0 2px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+  filter: none;
 }
 
 @keyframes stack-timber-glow {
   from {
-    opacity: 0.32;
+    opacity: 0.42;
   }
   to {
-    opacity: 0.75;
+    opacity: 0.95;
   }
 }
 
@@ -951,13 +934,16 @@ input:focus {
   opacity: 0.92;
 }
 
-.stack-timber.stack-timber--matched:disabled .stack-timber__inner {
-  opacity: 1;
-  filter: saturate(1.12) brightness(1.05);
-}
-
 .stack-timber.stack-timber--matched:disabled .stack-timber__label-card {
   opacity: 1;
+}
+
+.stack-timber--matched .stack-timber__label {
+  color: red;
+}
+
+.stack-timber--matched .stack-timber__meta {
+  color: rgba(31, 122, 52, 0.7);
 }
 
 .stack-timber__label {
