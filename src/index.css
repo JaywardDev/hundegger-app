@@ -778,10 +778,11 @@ input:focus {
   border-radius: 8px;
   clip-path: polygon(1.8% 0%, 98.2% 0%, 100% 8%, 100% 92%, 98.2% 100%, 1.8% 100%, 0% 92%, 0% 8%);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(0, 0, 0, 0.08) 100%),
-    repeating-linear-gradient(90deg, rgba(150, 111, 61, 0.22) 0 18px, rgba(110, 76, 41, 0.22) 18px 36px),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 3px, rgba(120, 84, 46, 0.12) 3px 6px),
-    linear-gradient(180deg, #d9b883 0%, #c08c4a 52%, #a66d31 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(0, 0, 0, 0.28) 100%),
+    url("/images/timber-image-600x180.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border: 1px solid rgba(94, 64, 32, 0.4);
   box-shadow: 0 26px 34px -28px rgba(26, 40, 33, 0.9), 0 12px 24px -18px rgba(46, 31, 18, 0.62),
     inset 0 2px 0 rgba(255, 255, 255, 0.38), inset 0 -1px 0 rgba(0, 0, 0, 0.18);
@@ -808,12 +809,11 @@ input:focus {
   border-radius: inherit;
   pointer-events: none;
   z-index: 1;
-  background-image:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 6px, rgba(0, 0, 0, 0.08) 6px 12px),
-    radial-gradient(70% 120% at 18% -30%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 70%),
-    radial-gradient(60% 120% at 90% 120%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 80%);
+  background:
+    radial-gradient(70% 120% at 18% -30%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(60% 120% at 90% 120%, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 80%);
   mix-blend-mode: multiply;
-  opacity: 0.55;
+  opacity: 0.48;
 }
 
 .stack-timber__texture::after {
