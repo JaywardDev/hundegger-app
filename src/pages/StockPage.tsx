@@ -168,7 +168,6 @@ export function StockPage() {
   );
 
   useEffect(() => {
-    if (!searchOpen) return;
     if (!hasActiveFilters) {
       setMatchedCells([]);
       setSearchResultLabel("");
@@ -184,7 +183,7 @@ export function StockPage() {
         ? "1 stack highlighted."
         : `${results.length} stacks highlighted.`
     );
-  }, [searchOpen, hasActiveFilters, computeMatches, normalizedCriteria]);
+  }, [hasActiveFilters, computeMatches, normalizedCriteria]);
 
   useEffect(() => {
     if (searchOpen) {
@@ -194,8 +193,6 @@ export function StockPage() {
     }
 
     if (searchWasOpenRef.current) {
-      setMatchedCells([]);
-      setSearchResultLabel("");
       searchButtonRef.current?.focus();
       searchWasOpenRef.current = false;
     }
