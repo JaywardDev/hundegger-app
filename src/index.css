@@ -951,6 +951,15 @@ input:focus {
   opacity: 0.92;
 }
 
+.stack-timber.stack-timber--matched:disabled .stack-timber__inner {
+  opacity: 1;
+  filter: saturate(1.12) brightness(1.05);
+}
+
+.stack-timber.stack-timber--matched:disabled .stack-timber__label-card {
+  opacity: 1;
+}
+
 .stack-timber__label {
   font-size: 20px;
   font-weight: 700;
