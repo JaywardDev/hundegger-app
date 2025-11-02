@@ -438,12 +438,14 @@ export const StockGrid: React.FC = () => {
 
   const handleDragEnd = React.useCallback(
     (event: React.PointerEvent<HTMLButtonElement>, stack: VisualStack) => {
+      const target = event.currentTarget;
+      const pointerType = event.pointerType;      
       let shouldRequestEdit = false;
 
       setDragState((state) => {
         if (!state || state.id !== stack.id) return state;
-        if (event.currentTarget.hasPointerCapture(state.pointerId)) {
-          event.currentTarget.releasePointerCapture(state.pointerId);
+        if (target?.hasPointerCapture(state.pointerId)) {
+          target.releasePointerCapture(state.pointerId);
         }
 
         setColumns((prev) => {
@@ -464,7 +466,7 @@ export const StockGrid: React.FC = () => {
         } else {
           dragPreventClickRef.current = false;
 
-          if (event.pointerType === "touch") {
+          if (pointerType === "touch") {
             const now = Date.now();
             const tapId = stack.id;
             const lastTap = lastTouchTapRef.current;
@@ -477,7 +479,7 @@ export const StockGrid: React.FC = () => {
             }
           } else {
             lastTouchTapRef.current = null;
-          }          
+          }
         }
 
         return null;
