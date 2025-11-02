@@ -2,7 +2,13 @@ import React from "react";
 import { useMatrixStore } from "../store/useMatrixStore";
 import { linearMeters, cubicMeters } from "../lib/calc";
 
-export const HeaderBar: React.FC<{ onExport: () => void }> = ({ onExport }) => {
+type HeaderBarProps = {
+  onExport: () => void;
+  onSearch?: () => void;
+  searchButtonRef?: React.Ref<HTMLButtonElement>;
+};
+
+export const HeaderBar: React.FC<HeaderBarProps> = ({ onExport, onSearch, searchButtonRef }) => {
   const matrix = useMatrixStore((s) => s.matrix);
   let pieces = 0;
   let lm = 0;
@@ -39,9 +45,21 @@ export const HeaderBar: React.FC<{ onExport: () => void }> = ({ onExport }) => {
           <dd>{m3.toFixed(3)}</dd>
         </div>
       </dl>
-      <button type="button" className="button button--primary" onClick={onExport}>
-        Export workbook
-      </button>
+      <div className="summary-card__actions">
+        {onSearch && (
+          <button
+            type="button"
+            ref={searchButtonRef}
+            className="button button--ghost"
+            onClick={onSearch}
+          >
+            Search stock
+          </button>
+        )}
+        <button type="button" className="button button--primary" onClick={onExport}>
+          Export workbook
+        </button>
+      </div>
     </section>
   );
 };

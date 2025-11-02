@@ -108,7 +108,8 @@ type StackTimberProps = {
     stack: VisualStack
   ) => void;
   isDragging?: boolean;
-  dragOffset?: number;  
+  dragOffset?: number;
+  isMatched?: boolean;
 };
 
 const StackTimber: React.FC<StackTimberProps> = ({
@@ -121,7 +122,8 @@ const StackTimber: React.FC<StackTimberProps> = ({
   onPointerMove,
   onPointerUp,
   isDragging,
-  dragOffset
+  dragOffset,
+  isMatched
 }) => {
   const { bay, level, cell, position, phase, id } = visual;
   const [dropStage, setDropStage] = React.useState<"start" | "settling">(
@@ -194,7 +196,7 @@ const StackTimber: React.FC<StackTimberProps> = ({
       type="button"
       className={`stack-timber${phase === "exit" ? " stack-timber--exiting" : ""}${
         isDragging ? " stack-timber--dragging" : ""
-      }`}
+      }${isMatched ? " stack-timber--matched" : ""}`}
       style={{
         height: `${TIMBER_HEIGHT}px`,
         bottom: `${STACK_BASE_OFFSET}px`,
@@ -248,7 +250,13 @@ const StackTimber: React.FC<StackTimberProps> = ({
   );
 };
 
-export const StockGrid: React.FC = () => {
+type MatchedCells = Partial<Record<Bay, Set<Level>>>;
+
+type StockGridProps = {
+  matchedCells?: MatchedCells;
+};
+
+export const StockGrid: React.FC<StockGridProps> = ({ matchedCells }) => {
   const { matrix, setEditor, editingEnabled, reorderBay } = useMatrixStore(
     useShallow((state) => ({
       matrix: state.matrix,
@@ -573,7 +581,8 @@ export const StockGrid: React.FC = () => {
                         stack.phase !== "exit" && dragState?.id === stack.id
                           ? dragState?.offset ?? 0
                           : 0
-                      }                      
+                      }
+                      isMatched={stack.phase !== "exit" && matchedCells?.[bay]?.has(stack.level)}                   
                     />
                   ))}
                   <div className="stack-column__base" aria-hidden="true" />
