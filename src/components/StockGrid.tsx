@@ -237,8 +237,12 @@ const StackTimber: React.FC<StackTimberProps> = ({
       title={titleLabel}
     >
       <span className="stack-timber__inner" onAnimationEnd={handleAnimationEnd}>
-        <span className="stack-timber__label">{firstItem.size_id}</span>
-        <span className="stack-timber__meta">{metaParts.join(" • ")}</span>
+        <span className="stack-timber__texture" aria-hidden="true" />
+        <span className="stack-timber__straps" aria-hidden="true" />
+        <span className="stack-timber__label-card">
+          <span className="stack-timber__label">{firstItem.size_id}</span>
+          <span className="stack-timber__meta">{metaParts.join(" • ")}</span>
+        </span>
       </span>
     </button>
   );
