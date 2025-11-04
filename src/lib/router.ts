@@ -9,7 +9,7 @@ import {
   type ReactNode
 } from "react";
 
-type Route = "home" | "stock" | "operations";
+type Route = "home" | "stock" | "operations" | "operationsForm";
 
 type RouterContextValue = {
   route: Route;
@@ -23,6 +23,7 @@ const hashForRoute = (route: Route) => {
     home: "#/",
     stock: "#/stock",
     operations: "#/operations",
+    operationsForm: "#/operations-form",    
   };
 
   return hashMap[route];
@@ -36,6 +37,10 @@ const routeFromHash = (hash: string): Route => {
   if (hash === "#/operations") {
     return "operations";
   }
+
+  if (hash === "#/operations-form") {
+    return "operationsForm";
+  }  
 
   return "home";
 };

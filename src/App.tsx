@@ -3,6 +3,7 @@ import { RouterProvider, useRouter } from "./lib/router";
 import { LandingPage } from "./pages/LandingPage";
 import { StockPage } from "./pages/StockPage";
 import { OperationsDataPage } from "./pages/OperationsDataPage";
+import { OperationsFormPage } from "./pages/OperationFormsPage";
 
 function AppRoutes() {
   const { route } = useRouter();
@@ -14,6 +15,10 @@ function AppRoutes() {
   if (route === "operations") {
     return <OperationsDataPage />;
   }
+
+  if (route === "operationsForm") {
+    return <OperationsFormPage />;
+  }  
 
   return <LandingPage />;
 }
