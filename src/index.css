@@ -279,6 +279,45 @@ input:focus {
   font-size: 14px;
 }
 
+.operations-form-status {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.operations-form-status__message {
+  flex: 1 1 220px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.operations-form-status__actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.operations-form-status--success {
+  border-color: rgba(47, 102, 87, 0.32);
+  background: rgba(47, 102, 87, 0.08);
+}
+
+.operations-form-status--error,
+.operations-form-status--network-error {
+  border-color: rgba(176, 70, 70, 0.32);
+  background: rgba(176, 70, 70, 0.08);
+}
+
+.operations-form-status--submitting {
+  border-style: dashed;
+}
+
 /* Stock page */
 .stock-page {
   min-height: 100%;
