@@ -1,10 +1,9 @@
 import {
-  ChangeEvent,
-  FormEvent,
   useCallback,
   useEffect,
   useState,
 } from "react";
+import type { ChangeEvent, FormEvent, ReactElement } from "react";
 import { useRouter } from "../lib/router";
 import {
   submitDailyRegistryEntry,
@@ -497,7 +496,7 @@ function FormField({
   label: string;
   hint?: string;
   required?: boolean;
-  input: JSX.Element;
+  input: ReactElement;
 }) {
   return (
     <div className="operations-form__field">
