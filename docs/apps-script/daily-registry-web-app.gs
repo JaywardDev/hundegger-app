@@ -9,9 +9,9 @@
  * and store the shared token in Script Properties under the key `API_TOKEN`.
  */
 const CONFIG = {
-  SHEET_ID: 'REPLACE_WITH_SHEET_ID',
+  SHEET_ID: '1WxxhatxzcHd6_pAvBgc5Mw70-0qQVS3LXVZYbyPT-_c',
   SHEET_NAME: 'Daily_Registry',
-  ALLOWED_ORIGIN: 'https://your-app-origin.example.com',
+  ALLOWED_ORIGIN: 'http://192.168.150.100:4000',
   AUTH_HEADER: 'X-API-Token',
 };
 

@@ -6,7 +6,7 @@ import {
   type DailyRegistrySuccessResponse,
   OperationsFormError,
   isOperationsFormError,
-} from "../lib/operationsFormApi;
+} from "../lib/operationsFormApi";
 
 const PLACEHOLDER_FORM_LINK =
   "https://docs.google.com/forms/d/e/FORM_ID/viewform";
