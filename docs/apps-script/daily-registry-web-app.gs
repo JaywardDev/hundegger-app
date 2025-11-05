@@ -20,40 +20,36 @@ const CONFIG = {
  * Responds with CORS headers for OPTIONS preflight requests as well.
  */
 function doPost(e) {
-  const corsHeaders = buildCorsHeaders();
-
   if (!e || typeof e !== 'object') {
     return createErrorResponse(
       400,
       'Request payload is required.',
-      corsHeaders,
       'missing_request'
     );
   }
 
   if (!e.postData) {
-    return createSuccessResponse({ ok: true, preflight: true }, corsHeaders);
+    return createSuccessResponse({ ok: true, preflight: true });
   }
 
   if (!CONFIG.SHEET_ID || CONFIG.SHEET_ID === 'REPLACE_WITH_SHEET_ID') {
     return createErrorResponse(
       500,
       'SHEET_ID is not configured in the Apps Script file.',
-      corsHeaders,
       'missing_sheet_id'
     );
   }
 
   const parsed = parseJsonBody(e);
   if (parsed.error) {
-    return createErrorResponse(400, parsed.error, corsHeaders, 'invalid_json');
+    return createErrorResponse(400, parsed.error, 'invalid_json');
   }
 
   const payload = parsed.data;
   const token = readToken(e, payload);
 
   if (!token) {
-    return createErrorResponse(401, 'Missing API token.', corsHeaders, 'missing_token');
+    return createErrorResponse(401, 'Missing API token.', 'missing_token');
   }
 
   const storedToken = PropertiesService.getScriptProperties().getProperty('API_TOKEN');
@@ -61,18 +57,17 @@ function doPost(e) {
     return createErrorResponse(
       500,
       'API_TOKEN script property is not configured.',
-      corsHeaders,
       'missing_api_token_property'
     );
   }
 
   if (token !== storedToken) {
-    return createErrorResponse(401, 'Invalid API token.', corsHeaders, 'invalid_token');
+    return createErrorResponse(401, 'Invalid API token.', 'invalid_token');
   }
 
   const validationError = validatePayload(payload);
   if (validationError) {
-    return createErrorResponse(400, validationError.message, corsHeaders, 'validation_error', {
+    return createErrorResponse(400, validationError.message, 'validation_error', {
       fields: validationError.fields,
     });
   }
@@ -83,7 +78,6 @@ function doPost(e) {
       return createErrorResponse(
         500,
         'Daily_Registry sheet tab was not found.',
-        corsHeaders,
         'sheet_not_found'
       );
     }
@@ -109,10 +103,10 @@ function doPost(e) {
       sheet.getRange(nextRow, entry.column).setValue(cleanedValue);
     });
 
-    return createSuccessResponse({ ok: true, row: nextRow }, corsHeaders);
+    return createSuccessResponse({ ok: true, row: nextRow });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unexpected error.';
-    return createErrorResponse(500, message, corsHeaders, 'server_error');
+    return createErrorResponse(500, message, 'server_error');
   }
 }
 
@@ -191,22 +185,12 @@ function parseDateValue(dateString) {
   return parsed;
 }
 
-function buildCorsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': CONFIG.ALLOWED_ORIGIN,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Max-Age': '3600',
-    Vary: 'Origin',
-    'Cache-Control': 'no-store',
-  };
+
+function createSuccessResponse(body) {
+  return createJsonResponse(200, body);
 }
 
-function createSuccessResponse(body, corsHeaders) {
-  return createJsonResponse(200, body, corsHeaders);
-}
-
-function createErrorResponse(status, message, corsHeaders, code, details) {
+function createErrorResponse(status, message, code, details) {
   var body = {
     ok: false,
     error: {
@@ -219,22 +203,17 @@ function createErrorResponse(status, message, corsHeaders, code, details) {
     body.error.details = details;
   }
 
-  return createJsonResponse(status, body, corsHeaders);
+  return createJsonResponse(status, body);
 }
 
-function createJsonResponse(status, body, corsHeaders) {
+function createJsonResponse(status, body) {
   var output = ContentService.createTextOutput(JSON.stringify(body));
   output.setMimeType(ContentService.MimeType.JSON);
   if (typeof output.setStatusCode === 'function') {
     output.setStatusCode(status);
   }
-
-  Object.keys(corsHeaders).forEach(function (key) {
-    output.setHeader(key, corsHeaders[key]);
-  });
-
   return output;
 }
 function doGet() {
-  return createSuccessResponse({ ok: true, method: 'GET' }, buildCorsHeaders());
+  return createSuccessResponse({ ok: true, method: 'GET' }());
 }
