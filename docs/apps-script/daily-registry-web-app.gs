@@ -130,17 +130,6 @@ function parseJsonBody(e) {
 }
 
 function readToken(e, payload) {
-  const headerName = CONFIG.AUTH_HEADER.toLowerCase();
-  if (e && e.headers) {
-    for (var key in e.headers) {
-      if (Object.prototype.hasOwnProperty.call(e.headers, key)) {
-        if (key.toLowerCase() === headerName) {
-          return e.headers[key];
-        }
-      }
-    }
-  }
-
   if (payload && typeof payload === 'object') {
     if (typeof payload.token === 'string') {
       return payload.token;
@@ -206,7 +195,7 @@ function buildCorsHeaders() {
   return {
     'Access-Control-Allow-Origin': CONFIG.ALLOWED_ORIGIN,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, ' + CONFIG.AUTH_HEADER,
+    'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '3600',
     Vary: 'Origin',
     'Cache-Control': 'no-store',

@@ -1,12 +1,3 @@
-export const AUTH_HEADER_NAME = "X-API-Token";
-
-/**
- * Shape of the payload expected by the Daily_Registry Apps Script endpoint.
- * - date: ISO 8601 date string in the format YYYY-MM-DD.
- * - startTime / finishTime: localized strings (e.g. "7:00 AM").
- * - timeRemainStart / timeRemainEnd: numbers or strings representing hours.
- * - *_Reason fields: optional freeform text. When omitted the script writes blanks.
- */
 export interface DailyRegistryPayload {
   date: string;
   operator: string;
@@ -103,11 +94,8 @@ export async function submitDailyRegistryEntry(
     response = await fetch(url, {
       method: "POST",
       mode: "cors",
-      headers: {
-        "Content-Type": "application/json",
-        [AUTH_HEADER_NAME]: token,
-      },
-      body: JSON.stringify(payload),
+      headers: {"Content-Type": "text/plain;charset=utf-8",},
+      body: JSON.stringify({...payload, apiToken: token}),
       signal: overrides?.signal,
     });
   } catch (error) {
