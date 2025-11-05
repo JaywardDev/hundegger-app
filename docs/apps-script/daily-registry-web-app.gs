@@ -28,8 +28,8 @@ function doPost(e) {
     );
   }
 
-  if (!e.postData) {
-    return createSuccessResponse({ ok: true, preflight: true });
+  if (!e.postData || !e.postData.contents) {
+    return createPreflightResponse();
   }
 
   if (!CONFIG.SHEET_ID || CONFIG.SHEET_ID === 'REPLACE_WITH_SHEET_ID') {
@@ -185,9 +185,12 @@ function parseDateValue(dateString) {
   return parsed;
 }
 
-
 function createSuccessResponse(body) {
   return createJsonResponse(200, body);
+}
+
+function createPreflightResponse() {
+  return createJsonResponse(200, { ok: true, preflight: true });
 }
 
 function createErrorResponse(status, message, code, details) {
@@ -212,8 +215,19 @@ function createJsonResponse(status, body) {
   if (typeof output.setStatusCode === 'function') {
     output.setStatusCode(status);
   }
+  if (typeof output.setHeader === 'function') {
+    var origin = CONFIG.ALLOWED_ORIGIN || '*';
+    output.setHeader('Access-Control-Allow-Origin', origin);
+    output.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, ' + CONFIG.AUTH_HEADER
+    );
+    output.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    output.setHeader('Vary', 'Origin');
+  }  
   return output;
 }
+
 function doGet() {
-  return createSuccessResponse({ ok: true, method: 'GET' }());
+  return createSuccessResponse({ ok: true, method: 'GET' });
 }

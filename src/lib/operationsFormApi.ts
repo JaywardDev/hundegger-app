@@ -94,8 +94,11 @@ export async function submitDailyRegistryEntry(
     response = await fetch(url, {
       method: "POST",
       mode: "cors",
-      headers: {"Content-Type": "text/plain;charset=utf-8",},
-      body: JSON.stringify({...payload, apiToken: token}),
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ ...payload, apiToken: token }),
       signal: overrides?.signal,
     });
   } catch (error) {

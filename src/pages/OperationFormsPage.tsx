@@ -1,4 +1,10 @@
-import { useCallback, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { useRouter } from "../lib/router";
 import {
   submitDailyRegistryEntry,
@@ -10,8 +16,6 @@ import {
 
 const PLACEHOLDER_FORM_LINK =
   "https://docs.google.com/forms/d/e/FORM_ID/viewform";
-const PLACEHOLDER_FORM_EMBED_LINK =
-  "https://docs.google.com/forms/d/e/FORM_ID/viewform?embedded=true";
 
 type SubmissionStatus =
   | "idle"
@@ -38,7 +42,7 @@ function createInitialSubmissionState(): SubmissionState {
   };
 }
 
-export function useOperationsFormSubmission() {
+function useOperationsFormSubmission() {
   const [state, setState] = useState<SubmissionState>(() =>
     createInitialSubmissionState()
   );
@@ -112,11 +116,121 @@ export function useOperationsFormSubmission() {
   };
 }
 
-export type OperationsFormSubmission = ReturnType<typeof useOperationsFormSubmission>;  
+type OperationsFormSubmission = ReturnType<typeof useOperationsFormSubmission>;
+
+interface DailyRegistryFormState {
+  date: string;
+  operator: string;
+  startTime: string;
+  finishTime: string;
+  projectFile: string;
+  timeRemainStart: string;
+  timeRemainEnd: string;
+  downtimeHrs: string;
+  downtimeReason: string;
+  interruptionHrs: string;
+  interruptionReason: string;
+}
+
+function createInitialFormState(): DailyRegistryFormState {
+  const today = new Date();
+  const isoDate = new Date(
+    today.getTime() - today.getTimezoneOffset() * 60000
+  )
+    .toISOString()
+    .slice(0, 10);
+
+  return {
+    date: isoDate,
+    operator: "",
+    startTime: "",
+    finishTime: "",
+    projectFile: "",
+    timeRemainStart: "",
+    timeRemainEnd: "",
+    downtimeHrs: "",
+    downtimeReason: "",
+    interruptionHrs: "",
+    interruptionReason: "",
+  };
+}
+
+function normalizeNumberField(value: string): string | number {
+  const trimmed = value.trim();
+  const numeric = Number(trimmed);
+  return trimmed && Number.isFinite(numeric) ? numeric : trimmed;
+}
+
+function normalizeOptionalNumberField(value: string): string | number | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const numeric = Number(trimmed);
+  return Number.isFinite(numeric) ? numeric : trimmed;
+}
+
+function normalizeOptionalTextField(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
 
 export function OperationsFormPage() {
   const { navigate } = useRouter();
   const submission = useOperationsFormSubmission();
+  const [formState, setFormState] = useState<DailyRegistryFormState>(() =>
+    createInitialFormState()
+  );
+
+  useEffect(() => {
+    if (submission.status === "success") {
+      setFormState(createInitialFormState());
+    }
+  }, [submission.status]);
+
+  const handleChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name, value } = event.target;
+      setFormState((current) => ({ ...current, [name]: value }));
+    },
+    []
+  );
+
+  const handleSubmit = useCallback(
+    async (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      const payload: DailyRegistryPayload = {
+        date: formState.date,
+        operator: formState.operator.trim(),
+        startTime: formState.startTime.trim(),
+        finishTime: formState.finishTime.trim(),
+        projectFile: formState.projectFile.trim(),
+        timeRemainStart: normalizeNumberField(formState.timeRemainStart),
+        timeRemainEnd: normalizeNumberField(formState.timeRemainEnd),
+        downtimeHrs: normalizeOptionalNumberField(formState.downtimeHrs),
+        downtimeReason: normalizeOptionalTextField(formState.downtimeReason),
+        interruptionHrs: normalizeOptionalNumberField(
+          formState.interruptionHrs
+        ),
+        interruptionReason: normalizeOptionalTextField(
+          formState.interruptionReason
+        ),
+      };
+
+      try {
+        await submission.submit(payload);
+      } catch {
+        // Errors are surfaced through the submission banner.
+      }
+    },
+    [formState, submission]
+  );
+
+  const resetForm = useCallback(() => {
+    setFormState(createInitialFormState());
+    submission.reset();
+  }, [submission]);  
 
   return (
     <main className="operations-page">
@@ -133,8 +247,8 @@ export function OperationsFormPage() {
           <div>
             <h1>Operations intake form</h1>
             <p>
-              Embed the Google Form that feeds the operations sheet so teammates can
-              submit updates without leaving the app.
+              Log production details that feed the Daily_Registry Google Sheet without
+              opening the external form.
             </p>
           </div>
         </header>
@@ -145,25 +259,255 @@ export function OperationsFormPage() {
             target="_blank"
             rel="noreferrer"
           >
-            Open the form in Google ↗
+            Open the Google Form ↗
           </a>
         </div>
-        <section className="sheet-embed" aria-label="Embedded Google Form">
-          <iframe
-            title="Operations Google Form"
-            src={PLACEHOLDER_FORM_EMBED_LINK}
-            loading="lazy"
-            allow="clipboard-read; clipboard-write"
-          />
-          <p className="sheet-embed__placeholder">
-            Replace the placeholder URLs in <code>OperationsFormPage.tsx</code> with the
-            published Google Form link. Ensure the form responses are connected to the
-            intended sheet tab before sharing with operators.
-          </p>
+        <section className="operations-form" aria-label="Operations intake form">
+          <form className="operations-form__form" onSubmit={handleSubmit}>
+            <div className="operations-form__grid" aria-label="Required details">
+              <FormField
+                id="date"
+                label="Date"
+                required
+                input={
+                  <input
+                    id="date"
+                    name="date"
+                    type="date"
+                    value={formState.date}
+                    onChange={handleChange}
+                    required
+                    disabled={submission.isSubmitting}
+                    autoComplete="off"
+                  />
+                }
+              />
+              <FormField
+                id="operator"
+                label="Operator"
+                required
+                input={
+                  <input
+                    id="operator"
+                    name="operator"
+                    type="text"
+                    value={formState.operator}
+                    onChange={handleChange}
+                    required
+                    disabled={submission.isSubmitting}
+                    autoComplete="name"
+                    placeholder="Jane Doe"
+                  />
+                }
+              />
+              <FormField
+                id="startTime"
+                label="Start time"
+                required
+                input={
+                  <input
+                    id="startTime"
+                    name="startTime"
+                    type="time"
+                    value={formState.startTime}
+                    onChange={handleChange}
+                    required
+                    disabled={submission.isSubmitting}
+                  />
+                }
+              />
+              <FormField
+                id="finishTime"
+                label="Finish time"
+                required
+                input={
+                  <input
+                    id="finishTime"
+                    name="finishTime"
+                    type="time"
+                    value={formState.finishTime}
+                    onChange={handleChange}
+                    required
+                    disabled={submission.isSubmitting}
+                  />
+                }
+              />
+              <FormField
+                id="projectFile"
+                label="Project file"
+                required
+                input={
+                  <input
+                    id="projectFile"
+                    name="projectFile"
+                    type="text"
+                    value={formState.projectFile}
+                    onChange={handleChange}
+                    required
+                    disabled={submission.isSubmitting}
+                    placeholder="Project name or file code"
+                  />
+                }
+              />
+              <FormField
+                id="timeRemainStart"
+                label="Time remaining (start)"
+                required
+                hint="Hours remaining at the start of the shift"
+                input={
+                  <input
+                    id="timeRemainStart"
+                    name="timeRemainStart"
+                    type="number"
+                    value={formState.timeRemainStart}
+                    onChange={handleChange}
+                    required
+                    disabled={submission.isSubmitting}
+                    step="0.25"
+                    min="0"
+                  />
+                }
+              />
+              <FormField
+                id="timeRemainEnd"
+                label="Time remaining (end)"
+                required
+                hint="Hours remaining at the end of the shift"
+                input={
+                  <input
+                    id="timeRemainEnd"
+                    name="timeRemainEnd"
+                    type="number"
+                    value={formState.timeRemainEnd}
+                    onChange={handleChange}
+                    required
+                    disabled={submission.isSubmitting}
+                    step="0.25"
+                    min="0"
+                  />
+                }
+              />
+            </div>
+
+            <fieldset className="operations-form__fieldset">
+              <legend>Downtime (optional)</legend>
+              <div className="operations-form__grid operations-form__grid--compact">
+                <FormField
+                  id="downtimeHrs"
+                  label="Downtime hours"
+                  input={
+                    <input
+                      id="downtimeHrs"
+                      name="downtimeHrs"
+                      type="number"
+                      value={formState.downtimeHrs}
+                      onChange={handleChange}
+                      disabled={submission.isSubmitting}
+                      step="0.25"
+                      min="0"
+                    />
+                  }
+                />
+                <FormField
+                  id="downtimeReason"
+                  label="Downtime reason"
+                  input={
+                    <textarea
+                      id="downtimeReason"
+                      name="downtimeReason"
+                      value={formState.downtimeReason}
+                      onChange={handleChange}
+                      disabled={submission.isSubmitting}
+                      rows={3}
+                    />
+                  }
+                />
+              </div>
+            </fieldset>
+
+            <fieldset className="operations-form__fieldset">
+              <legend>Interruptions (optional)</legend>
+              <div className="operations-form__grid operations-form__grid--compact">
+                <FormField
+                  id="interruptionHrs"
+                  label="Interruption hours"
+                  input={
+                    <input
+                      id="interruptionHrs"
+                      name="interruptionHrs"
+                      type="number"
+                      value={formState.interruptionHrs}
+                      onChange={handleChange}
+                      disabled={submission.isSubmitting}
+                      step="0.25"
+                      min="0"
+                    />
+                  }
+                />
+                <FormField
+                  id="interruptionReason"
+                  label="Interruption reason"
+                  input={
+                    <textarea
+                      id="interruptionReason"
+                      name="interruptionReason"
+                      value={formState.interruptionReason}
+                      onChange={handleChange}
+                      disabled={submission.isSubmitting}
+                      rows={3}
+                    />
+                  }
+                />
+              </div>
+            </fieldset>
+
+            <div className="operations-form__actions">
+              <button
+                type="submit"
+                className="button button--primary"
+                disabled={submission.isSubmitting}
+              >
+                {submission.isSubmitting ? "Submitting…" : "Submit entry"}
+              </button>
+              <button
+                type="button"
+                className="button"
+                onClick={resetForm}
+                disabled={submission.isSubmitting}
+              >
+                Reset form
+              </button>
+            </div>
+          </form>
         </section>
-        <SubmissionStatusBanner submission={submission} />        
+        <SubmissionStatusBanner submission={submission} />
       </div>
     </main>
+  );
+}
+
+function FormField({
+  id,
+  label,
+  hint,
+  required,
+  input,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  required?: boolean;
+  input: JSX.Element;
+}) {
+  return (
+    <div className="operations-form__field">
+      <label className="operations-form__label" htmlFor={id}>
+        {label}
+        {required ? <span aria-hidden="true">*</span> : null}
+      </label>
+      {hint ? <p className="operations-form__hint">{hint}</p> : null}
+      {input}
+    </div>
   );
 }
 
@@ -205,5 +549,3 @@ function SubmissionStatusBanner({
     </div>
   );
 }
-
-export type { DailyRegistryPayload } from "../lib/operationsFormApi";

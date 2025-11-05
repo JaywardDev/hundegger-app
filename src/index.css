@@ -252,6 +252,110 @@ input:focus {
   justify-content: flex-end;
 }
 
+.operations-form {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-soft);
+  padding: clamp(20px, 3vw, 32px);
+}
+
+.operations-form__form {
+  display: grid;
+  gap: 24px;
+}
+
+.operations-form__grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.operations-form__grid--compact {
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.operations-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.operations-form__label {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.operations-form__label span {
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.operations-form__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.operations-form__field input,
+.operations-form__field textarea {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  padding: 10px 12px;
+  font: inherit;
+  color: inherit;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.operations-form__field input:focus-visible,
+.operations-form__field textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 102, 87, 0.15);
+}
+
+.operations-form__field input:disabled,
+.operations-form__field textarea:disabled {
+  background: var(--surface-soft);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.operations-form__field textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+
+.operations-form__fieldset {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px 20px 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.operations-form__fieldset legend {
+  font-weight: 600;
+  padding: 0 8px;
+  color: var(--muted);
+}
+
+.operations-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.operations-form__actions .button {
+  min-width: 140px;
+}
+
 .sheet-embed {
   flex: 1;
   display: flex;
