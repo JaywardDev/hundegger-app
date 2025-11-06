@@ -143,45 +143,32 @@ export async function submitDailyRegistryEntry(
     );
   }
 
-  const text = await response.text();
-  let data: unknown = null;
-
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch (error) {
-      throw new OperationsFormError("Received a non-JSON response from the server.", {
-        kind: "http",
-        status: response.status,
-        cause: error,
-      });
-    }
-  }
-
-  if (!response.ok) {
-    const body = data as
-      | {
-          error?: { message?: string; code?: string; details?: unknown };
-        }
-      | null;
-
-    const message = body?.error?.message ?? `Request failed with status ${response.status}.`;
-    throw new OperationsFormError(message, {
+  const ctype = response.headers.get("content-type") || "";
+  const raw = await response.text();
+  console.log("[client] status:", response.status, "ctype:", ctype, "raw:", raw.slice(0,200));
+  
+  let data: any = null;
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    throw new OperationsFormError("Server returned invalid JSON.", {
       kind: "http",
       status: response.status,
-      code: body?.error?.code,
-      details: body?.error?.details,
-    });
+      cause: err,
+    })
   }
 
-  const success = data as DailyRegistrySuccessResponse | null;
-  if (!success || typeof success.row !== "number") {
-    throw new OperationsFormError("Unexpected response payload from the server.", {
-      kind: "http",
-      status: response.status,
-      details: data,
-    });
+  //Explicit success detection
+  if (response.ok && data && data.ok === true && typeof data.row === "number"){
+    return { ok: true, row: data.row } as DailyRegistrySuccessResponse;
   }
 
-  return success;
+  //Handle explicit error JSON or HTTTP error
+  const message = data?.error?.message ?? 'Request failed with status ${response.status}.';
+  throw new OperationsFormError(message, {
+    kind: "http",
+    status: response.status,
+    code: data?.error?.code,
+    details: data?.error?.details,
+  });
 }
