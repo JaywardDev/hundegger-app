@@ -22,6 +22,29 @@ export type OperationsFormErrorKind =
   | "http"
   | "config"
   | "unknown";
+const fallbackApiHost = () => {
+  if (typeof window === "undefined") return "http://localhost:4000";
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${hostname}:4000`;
+};
+
+const resolveDefaultWebAppUrl = (): string => {
+  const override = import.meta.env.VITE_DAILY_REGISTRY_WEB_APP_URL;
+  if (override) {
+    return override;
+  }
+
+  const base = import.meta.env.VITE_MATRIX_API_URL ?? fallbackApiHost();
+  try {
+    return new URL("/daily-registry", base).toString();
+  } catch (error) {
+    console.warn("Unable to construct daily registry URL from base", error);
+    const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
+    return `${normalizedBase}/daily-registry`;
+  }
+};
+
+const DEFAULT_WEB_APP_URL = resolveDefaultWebAppUrl();
 
 export class OperationsFormError extends Error {
   readonly status: number | null;
@@ -72,19 +95,12 @@ export async function submitDailyRegistryEntry(
     token?: string;
   }
 ): Promise<DailyRegistrySuccessResponse> {
-  const url = overrides?.webAppUrl ?? import.meta.env.VITE_DAILY_REGISTRY_WEB_APP_URL;
+  const url = overrides?.webAppUrl ?? DEFAULT_WEB_APP_URL;
   const token = overrides?.token ?? import.meta.env.VITE_DAILY_REGISTRY_API_TOKEN;
 
   if (!url) {
     throw new OperationsFormError(
-      "Daily Registry Web App URL is not configured. Set VITE_DAILY_REGISTRY_WEB_APP_URL in your environment.",
-      { kind: "config" }
-    );
-  }
-
-  if (!token) {
-    throw new OperationsFormError(
-      "Daily Registry API token is not configured. Set VITE_DAILY_REGISTRY_API_TOKEN in your environment.",
+      "Daily Registry endpoint is not configured. Set VITE_DAILY_REGISTRY_WEB_APP_URL in your environment.",
       { kind: "config" }
     );
   }
@@ -98,7 +114,7 @@ export async function submitDailyRegistryEntry(
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ ...payload, apiToken: token }),
+      body: JSON.stringify(token ? { ...payload, apiToken: token } : payload),
       signal: overrides?.signal,
     });
   } catch (error) {

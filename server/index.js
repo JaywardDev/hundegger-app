@@ -11,6 +11,13 @@ const MATRIX_FILE = path.join(DATA_DIR, "matrix.json");
 const STATIC_DIR = path.resolve(__dirname, "..", "dist");
 const STATIC_INDEX = path.join(STATIC_DIR, "index.html");
 
+const DAILY_REGISTRY_WEB_APP_URL = process.env.DAILY_REGISTRY_WEB_APP_URL ?? null;
+const DAILY_REGISTRY_API_TOKEN = process.env.DAILY_REGISTRY_API_TOKEN ?? null;
+const configuredTimeout = Number(process.env.DAILY_REGISTRY_TIMEOUT_MS ?? "");
+const DAILY_REGISTRY_TIMEOUT_MS = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+  ? configuredTimeout
+  : 15_000;
+
 const BAYS = Array.from({ length: 13 }, (_, i) => `B${String(i + 1).padStart(2, "0")}`);
 const LEVELS = Array.from({ length: 10 }, (_, i) => `L${String(i + 1).padStart(2, "0")}`);
 
@@ -69,13 +76,15 @@ async function writeMatrixFile(matrix) {
 
 const ALLOWED_ORIGIN = process.env.MATRIX_SERVER_ALLOW_ORIGIN ?? "*";
 
+const ALLOWED_METHODS = "GET,PUT,POST,OPTIONS";
+
 const sendJson = (res, statusCode, payload) => {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
     "Content-Type": "application/json",
     "Content-Length": Buffer.byteLength(body),
     "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
-    "Access-Control-Allow-Methods": "GET,PUT,OPTIONS",
+    "Access-Control-Allow-Methods": ALLOWED_METHODS,
     "Access-Control-Allow-Headers": "Content-Type"
   });
   res.end(body);
@@ -99,6 +108,75 @@ const parseBody = async (req) => {
     const parseError = new Error("Invalid JSON");
     parseError.statusCode = 400;
     throw parseError;
+  }
+};
+
+const forwardDailyRegistryEntry = async (payload) => {
+  if (!DAILY_REGISTRY_WEB_APP_URL) {
+    return {
+      status: 500,
+      body: { error: "Daily registry web app URL is not configured" }
+    };
+  }
+
+  if (!DAILY_REGISTRY_API_TOKEN) {
+    return {
+      status: 500,
+      body: { error: "Daily registry API token is not configured" }
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DAILY_REGISTRY_TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(DAILY_REGISTRY_WEB_APP_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({ ...payload, apiToken: DAILY_REGISTRY_API_TOKEN }),
+      signal: controller.signal
+    });
+  } catch (error) {
+    clearTimeout(timeout);
+    if (error.name === "AbortError") {
+      return {
+        status: 504,
+        body: { error: "Daily registry service timed out" }
+      };
+    }
+    console.error("Daily registry forward error", error);
+    return {
+      status: 502,
+      body: { error: "Failed to reach daily registry service" }
+    };
+  }
+
+  clearTimeout(timeout);
+
+  const text = await response.text();
+  if (!text) {
+    return {
+      status: response.status,
+      body: null
+    };
+  }
+
+  try {
+    const data = JSON.parse(text);
+    return {
+      status: response.status,
+      body: data
+    };
+  } catch (error) {
+    console.error("Daily registry JSON parse error", error);
+    return {
+      status: 502,
+      body: { error: "Daily registry service returned invalid JSON" }
+    };
   }
 };
 
@@ -194,7 +272,7 @@ const tryServeStatic = async (req, res, pathname, originHeaders) => {
 const server = http.createServer(async (req, res) => {
   const originHeaders = {
     "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
-    "Access-Control-Allow-Methods": "GET,PUT,OPTIONS",
+    "Access-Control-Allow-Methods": ALLOWED_METHODS,
     "Access-Control-Allow-Headers": "Content-Type"
   };
 
@@ -236,6 +314,23 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "POST" && pathname === "/daily-registry") {
+      const payload = await parseBody(req);
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+        sendJson(res, 400, { error: "Daily registry payload must be an object" });
+        return;
+      }
+
+      const upstream = await forwardDailyRegistryEntry(payload);
+      const body = upstream.body ?? null;
+      res.writeHead(upstream.status, {
+        ...originHeaders,
+        "Content-Type": "application/json"
+      });
+      res.end(JSON.stringify(body));
+      return;
+    }
+        
     if (req.method === "GET") {
       const served = await tryServeStatic(req, res, pathname, originHeaders);
       if (served) {

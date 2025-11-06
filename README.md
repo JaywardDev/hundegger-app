@@ -60,3 +60,21 @@ Additional recommendations:
 - Share the `server/data/matrix.json` file as part of your backup routine.
 - Reverse proxy (nginx, Caddy, etc.) if you need HTTPS, otherwise the built-in
   server is sufficient for LAN usage.
+
+## Daily registry form submission
+
+The `/daily-registry` API route proxies submissions to the Google Apps Script
+web app so tablets on the LAN can submit entries without running into browser
+CORS restrictions.
+
+Before starting the Node.js server, set the following environment variables:
+
+- `DAILY_REGISTRY_WEB_APP_URL` – the published Apps Script web app URL (ends in
+  `/exec`).
+- `DAILY_REGISTRY_API_TOKEN` – the shared secret that the Apps Script checks.
+- `DAILY_REGISTRY_TIMEOUT_MS` (optional) – override the 15&nbsp;second upstream
+  request timeout.
+
+The frontend points to `/daily-registry` automatically. If you need to hit a
+different endpoint, set `VITE_DAILY_REGISTRY_WEB_APP_URL` before starting Vite
+or building the frontend bundle.
