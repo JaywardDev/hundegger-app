@@ -125,6 +125,17 @@ export async function submitDailyRegistryEntry(
       body: JSON.stringify(token ? { ...payload, apiToken: token } : payload),
       signal: overrides?.signal,
     });
+
+    console.log(
+      "[client] status:",
+      response.status,
+      "ctype:",
+      response.headers.get("content-type"),
+    );
+
+    const text = await response.text();
+    console.log("[client] raw:", text.slice(0,200));
+    
   } catch (error) {
     throw new OperationsFormError(
       "Network request failed. Check your connection and try again.",
