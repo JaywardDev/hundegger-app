@@ -22,19 +22,25 @@ export type OperationsFormErrorKind =
   | "http"
   | "config"
   | "unknown";
-const fallbackApiHost = () => {
-  if (typeof window === "undefined") return "http://localhost:4000";
-  const { protocol, hostname } = window.location;
-  return `${protocol}//${hostname}:4000`;
-};
-
 const resolveDefaultWebAppUrl = (): string => {
   const override = import.meta.env.VITE_DAILY_REGISTRY_WEB_APP_URL;
   if (override) {
     return override;
   }
 
-  const base = import.meta.env.VITE_MATRIX_API_URL ?? fallbackApiHost();
+  if (typeof window !== "undefined") {
+    return "/daily-registry";
+  }
+
+  const fallbackApiHost = (): string => {
+    const configured = import.meta.env.VITE_MATRIX_API_URL;
+    if (configured) {
+      return configured;
+    }
+    return "http://localhost:4000";
+  };
+
+  const base = fallbackApiHost();
   try {
     return new URL("/daily-registry", base).toString();
   } catch (error) {

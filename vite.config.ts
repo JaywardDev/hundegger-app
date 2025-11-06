@@ -14,5 +14,11 @@ export default defineConfig({
       port: 5173,
       clientPort: 5173, // mobile browsers sometimes need this explicit
     },
+    proxy: {
+      "/daily-registry": {
+        target: "http://localhost:4000",
+        changeOrigin: false,
+      },
+    },    
   },
 })
