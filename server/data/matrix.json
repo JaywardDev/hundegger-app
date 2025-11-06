@@ -68,10 +68,74 @@
       "updated_by": "Jayward (CNC Operator)",
       "updated_at": "2025-11-02T19:40:54.488Z"
     },
-    "L05": null,
-    "L06": null,
-    "L07": null,
-    "L08": null,
+    "L05": {
+      "bay": "B01",
+      "level": "L05",
+      "items": [
+        {
+          "size_id": "180x460",
+          "width_mm": 460,
+          "thickness_mm": 180,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 1
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:11:49.275Z"
+    },
+    "L06": {
+      "bay": "B01",
+      "level": "L06",
+      "items": [
+        {
+          "size_id": "180x300",
+          "width_mm": 300,
+          "thickness_mm": 180,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 1
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:12:12.654Z"
+    },
+    "L07": {
+      "bay": "B01",
+      "level": "L07",
+      "items": [
+        {
+          "size_id": "180x240",
+          "width_mm": 240,
+          "thickness_mm": 180,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 2
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:12:25.346Z"
+    },
+    "L08": {
+      "bay": "B01",
+      "level": "L08",
+      "items": [
+        {
+          "size_id": "180x360",
+          "width_mm": 360,
+          "thickness_mm": 180,
+          "length_mm": 8900,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 2
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:12:51.871Z"
+    },
     "L09": null,
     "L10": null
   },
@@ -279,8 +343,40 @@
       "updated_by": "Jayward (CNC Operator)",
       "updated_at": "2025-11-02T19:43:30.562Z"
     },
-    "L04": null,
-    "L05": null,
+    "L04": {
+      "bay": "B04",
+      "level": "L04",
+      "items": [
+        {
+          "size_id": "135x240",
+          "width_mm": 240,
+          "thickness_mm": 135,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 15
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:14:04.102Z"
+    },
+    "L05": {
+      "bay": "B04",
+      "level": "L05",
+      "items": [
+        {
+          "size_id": "135x240",
+          "width_mm": 240,
+          "thickness_mm": 135,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 15
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:14:49.995Z"
+    },
     "L06": null,
     "L07": null,
     "L08": null,
@@ -327,11 +423,11 @@
           "length_mm": 12000,
           "grade": "LVL11",
           "treatment": "H1.2",
-          "pieces": 12
+          "pieces": 9
         }
       ],
       "updated_by": "Jayward (CNC Operator)",
-      "updated_at": "2025-11-02T19:44:13.720Z"
+      "updated_at": "2025-11-06T22:23:40.702Z"
     },
     "L02": {
       "bay": "B06",
@@ -361,11 +457,11 @@
           "length_mm": 12000,
           "grade": "LVL11",
           "treatment": "H1.2",
-          "pieces": 3
+          "pieces": 4
         }
       ],
       "updated_by": "Jayward (CNC Operator)",
-      "updated_at": "2025-11-02T19:45:04.356Z"
+      "updated_at": "2025-11-06T22:24:28.962Z"
     },
     "L04": {
       "bay": "B06",
@@ -389,15 +485,6 @@
       "level": "L05",
       "items": [
         {
-          "size_id": "135x400",
-          "width_mm": 400,
-          "thickness_mm": 135,
-          "length_mm": 12000,
-          "grade": "LVL11",
-          "treatment": "H1.2",
-          "pieces": 2
-        },
-        {
           "size_id": "135x200",
           "width_mm": 200,
           "thickness_mm": 135,
@@ -408,16 +495,64 @@
         }
       ],
       "updated_by": "Jayward (CNC Operator)",
-      "updated_at": "2025-11-02T19:45:48.680Z"
+      "updated_at": "2025-11-06T22:25:03.233Z"
     },
-    "L06": null,
-    "L07": null,
+    "L06": {
+      "bay": "B06",
+      "level": "L06",
+      "items": [
+        {
+          "size_id": "135x240",
+          "width_mm": 240,
+          "thickness_mm": 135,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 15
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:15:34.336Z"
+    },
+    "L07": {
+      "bay": "B06",
+      "level": "L07",
+      "items": [
+        {
+          "size_id": "135x240",
+          "width_mm": 240,
+          "thickness_mm": 135,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 15
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:15:44.175Z"
+    },
     "L08": null,
     "L09": null,
     "L10": null
   },
   "B07": {
-    "L01": null,
+    "L01": {
+      "bay": "B07",
+      "level": "L01",
+      "items": [
+        {
+          "size_id": "45x90",
+          "width_mm": 90,
+          "thickness_mm": 45,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 91
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:15:56.479Z"
+    },
     "L02": null,
     "L03": null,
     "L04": null,
@@ -429,20 +564,148 @@
     "L10": null
   },
   "B08": {
-    "L01": null,
-    "L02": null,
-    "L03": null,
-    "L04": null,
-    "L05": null,
-    "L06": null,
+    "L01": {
+      "bay": "B08",
+      "level": "L01",
+      "items": [
+        {
+          "size_id": "64x240",
+          "width_mm": 240,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 25
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:16:18.453Z"
+    },
+    "L02": {
+      "bay": "B08",
+      "level": "L02",
+      "items": [
+        {
+          "size_id": "64x240",
+          "width_mm": 240,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 25
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:16:35.257Z"
+    },
+    "L03": {
+      "bay": "B08",
+      "level": "L03",
+      "items": [
+        {
+          "size_id": "64x240",
+          "width_mm": 240,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 25
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:16:45.300Z"
+    },
+    "L04": {
+      "bay": "B08",
+      "level": "L04",
+      "items": [
+        {
+          "size_id": "64x240",
+          "width_mm": 240,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 25
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:16:53.802Z"
+    },
+    "L05": {
+      "bay": "B08",
+      "level": "L05",
+      "items": [
+        {
+          "size_id": "64x240",
+          "width_mm": 240,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 25
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:17:02.630Z"
+    },
+    "L06": {
+      "bay": "B08",
+      "level": "L06",
+      "items": [
+        {
+          "size_id": "64x240",
+          "width_mm": 240,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 25
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:17:10.343Z"
+    },
     "L07": null,
     "L08": null,
     "L09": null,
     "L10": null
   },
   "B09": {
-    "L01": null,
-    "L02": null,
+    "L01": {
+      "bay": "B09",
+      "level": "L01",
+      "items": [
+        {
+          "size_id": "90x150",
+          "width_mm": 150,
+          "thickness_mm": 90,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 24
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:17:22.734Z"
+    },
+    "L02": {
+      "bay": "B09",
+      "level": "L02",
+      "items": [
+        {
+          "size_id": "90x150",
+          "width_mm": 150,
+          "thickness_mm": 90,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 15
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:17:38.370Z"
+    },
     "L03": null,
     "L04": null,
     "L05": null,
@@ -453,11 +716,91 @@
     "L10": null
   },
   "B10": {
-    "L01": null,
-    "L02": null,
-    "L03": null,
-    "L04": null,
-    "L05": null,
+    "L01": {
+      "bay": "B10",
+      "level": "L01",
+      "items": [
+        {
+          "size_id": "90x300",
+          "width_mm": 300,
+          "thickness_mm": 90,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 12
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:17:55.054Z"
+    },
+    "L02": {
+      "bay": "B10",
+      "level": "L02",
+      "items": [
+        {
+          "size_id": "90x300",
+          "width_mm": 300,
+          "thickness_mm": 90,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 12
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:18:07.961Z"
+    },
+    "L03": {
+      "bay": "B10",
+      "level": "L03",
+      "items": [
+        {
+          "size_id": "90x300",
+          "width_mm": 300,
+          "thickness_mm": 90,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 12
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:18:17.618Z"
+    },
+    "L04": {
+      "bay": "B10",
+      "level": "L04",
+      "items": [
+        {
+          "size_id": "90x300",
+          "width_mm": 300,
+          "thickness_mm": 90,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 12
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:18:38.394Z"
+    },
+    "L05": {
+      "bay": "B10",
+      "level": "L05",
+      "items": [
+        {
+          "size_id": "90x240",
+          "width_mm": 240,
+          "thickness_mm": 90,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 9
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:19:06.381Z"
+    },
     "L06": null,
     "L07": null,
     "L08": null,
@@ -465,8 +808,40 @@
     "L10": null
   },
   "B11": {
-    "L01": null,
-    "L02": null,
+    "L01": {
+      "bay": "B11",
+      "level": "L01",
+      "items": [
+        {
+          "size_id": "64x200",
+          "width_mm": 200,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 30
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:19:20.852Z"
+    },
+    "L02": {
+      "bay": "B11",
+      "level": "L02",
+      "items": [
+        {
+          "size_id": "64x300",
+          "width_mm": 300,
+          "thickness_mm": 64,
+          "length_mm": 6000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 12
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:20:13.315Z"
+    },
     "L03": null,
     "L04": null,
     "L05": null,
@@ -477,7 +852,23 @@
     "L10": null
   },
   "B12": {
-    "L01": null,
+    "L01": {
+      "bay": "B12",
+      "level": "L01",
+      "items": [
+        {
+          "size_id": "64x140",
+          "width_mm": 140,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 20
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:21:21.221Z"
+    },
     "L02": null,
     "L03": null,
     "L04": null,
@@ -524,8 +915,40 @@
       "updated_by": "JAY",
       "updated_at": "2025-10-30T20:18:01.691Z"
     },
-    "L03": null,
-    "L04": null,
+    "L03": {
+      "bay": "B13",
+      "level": "L03",
+      "items": [
+        {
+          "size_id": "64x90",
+          "width_mm": 90,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 65
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:20:42.546Z"
+    },
+    "L04": {
+      "bay": "B13",
+      "level": "L04",
+      "items": [
+        {
+          "size_id": "64x90",
+          "width_mm": 90,
+          "thickness_mm": 64,
+          "length_mm": 12000,
+          "grade": "LVL11",
+          "treatment": "H1.2",
+          "pieces": 20
+        }
+      ],
+      "updated_by": "Jayward (CNC Operator)",
+      "updated_at": "2025-11-06T22:21:03.093Z"
+    },
     "L05": null,
     "L06": null,
     "L07": null,
