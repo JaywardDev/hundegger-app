@@ -111,6 +111,8 @@ export async function submitDailyRegistryEntry(
     );
   }
 
+  console.log("[client] daily-registry URL:", url);
+
   let response: Response;
   try {
     response = await fetch(url, {
