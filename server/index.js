@@ -113,72 +113,49 @@ const parseBody = async (req) => {
 
 const forwardDailyRegistryEntry = async (payload) => {
   if (!DAILY_REGISTRY_WEB_APP_URL) {
-    return {
-      status: 500,
-      body: { error: "Daily registry web app URL is not configured" }
-    };
+    return { status: 500, body: { error: "Daily registry web app URL is not configured" } };
   }
-
   if (!DAILY_REGISTRY_API_TOKEN) {
-    return {
-      status: 500,
-      body: { error: "Daily registry API token is not configured" }
-    };
+    return { status: 500, body: { error: "Daily registry API token is not configured" } };
   }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DAILY_REGISTRY_TIMEOUT_MS);
 
-  let response;
   try {
-    response = await fetch(DAILY_REGISTRY_WEB_APP_URL, {
+    const r = await fetch(DAILY_REGISTRY_WEB_APP_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json"
-      },
+      // text/plain is fine server→server, and also matches our Apps Script parser
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ ...payload, apiToken: DAILY_REGISTRY_API_TOKEN }),
       signal: controller.signal
     });
+    clearTimeout(timeout);
+
+    const ctype = r.headers.get("content-type") || "";
+    const text = await r.text();
+    console.log("[upstream]", r.status, ctype, text.slice(0, 160).replace(/\s+/g, " "));
+
+    // Prefer JSON, but if it's not JSON, return raw text so the client can show it.
+    if (ctype.includes("application/json")) {
+      try {
+        return { status: r.status, body: JSON.parse(text) };
+      } catch {
+        // fallthrough to raw
+      }
+    }
+    return { status: r.status, body: { raw: text } };
+
   } catch (error) {
     clearTimeout(timeout);
     if (error.name === "AbortError") {
-      return {
-        status: 504,
-        body: { error: "Daily registry service timed out" }
-      };
+      return { status: 504, body: { error: "Daily registry service timed out" } };
     }
     console.error("Daily registry forward error", error);
-    return {
-      status: 502,
-      body: { error: "Failed to reach daily registry service" }
-    };
-  }
-
-  clearTimeout(timeout);
-
-  const text = await response.text();
-  if (!text) {
-    return {
-      status: response.status,
-      body: null
-    };
-  }
-
-  try {
-    const data = JSON.parse(text);
-    return {
-      status: response.status,
-      body: data
-    };
-  } catch (error) {
-    console.error("Daily registry JSON parse error", error);
-    return {
-      status: 502,
-      body: { error: "Daily registry service returned invalid JSON" }
-    };
+    return { status: 502, body: { error: "Failed to reach daily registry service" } };
   }
 };
+
 
 const CONTENT_TYPES = {
   ".css": "text/css; charset=utf-8",
