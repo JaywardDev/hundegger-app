@@ -4,6 +4,7 @@ export interface DailyRegistryPayload {
   startTime: string;
   finishTime: string;
   projectFile: string;
+  actualVolumeCut?: string | number | null;
   timeRemainStart: string | number;
   timeRemainEnd: string | number;
   downtimeHrs?: string | number | null;
