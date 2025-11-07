@@ -160,10 +160,23 @@ function createInitialFormState(): DailyRegistryFormState {
   };
 }
 
-function normalizeNumberField(value: string): string | number {
+function normalizeDurationField(value: string): string {
   const trimmed = value.trim();
-  const numeric = Number(trimmed);
-  return trimmed && Number.isFinite(numeric) ? numeric : trimmed;
+  if (!trimmed) {
+    return trimmed;
+  }
+
+  const durationPattern = /^(\d{1,3}):([0-5]\d)$/;
+  const match = durationPattern.exec(trimmed);
+  if (!match) {
+    return trimmed;
+  }
+
+  const hours = match[1];
+  const minutes = match[2];
+
+  const normalizedHours = String(Number(hours)).padStart(3, "0");
+  return `${normalizedHours}:${minutes}`;
 }
 
 function normalizeOptionalNumberField(value: string): string | number | null {
@@ -212,8 +225,8 @@ export function OperationsFormPage() {
         finishTime: formState.finishTime.trim(),
         projectFile: formState.projectFile.trim(),
         actualVolumeCut: normalizeOptionalNumberField(formState.actualVolumeCut),
-        timeRemainStart: normalizeNumberField(formState.timeRemainStart),
-        timeRemainEnd: normalizeNumberField(formState.timeRemainEnd),
+        timeRemainStart: normalizeDurationField(formState.timeRemainStart),
+        timeRemainEnd: normalizeDurationField(formState.timeRemainEnd),
         downtimeHrs: normalizeOptionalNumberField(formState.downtimeHrs),
         downtimeReason: normalizeOptionalTextField(formState.downtimeReason),
         interruptionHrs: normalizeOptionalNumberField(
@@ -378,18 +391,19 @@ export function OperationsFormPage() {
                 id="timeRemainStart"
                 label="Time remaining (start)"
                 required
-                hint="Hours remaining at the start of the shift"
+                hint="Hours remaining at the start of the shift (HHH:MM)"
                 input={
                   <input
                     id="timeRemainStart"
                     name="timeRemainStart"
-                    type="number"
+                    type="text"
                     value={formState.timeRemainStart}
                     onChange={handleChange}
                     required
                     disabled={submission.isSubmitting}
-                    step="0.25"
-                    min="0"
+                    inputMode="numeric"
+                    pattern="\\d{1,3}:[0-5]\\d"
+                    placeholder="HHH:MM"
                   />
                 }
               />
@@ -397,18 +411,19 @@ export function OperationsFormPage() {
                 id="timeRemainEnd"
                 label="Time remaining (end)"
                 required
-                hint="Hours remaining at the end of the shift"
+                hint="Hours remaining at the end of the shift (HHH:MM)"
                 input={
                   <input
                     id="timeRemainEnd"
                     name="timeRemainEnd"
-                    type="number"
+                    type="text"
                     value={formState.timeRemainEnd}
                     onChange={handleChange}
                     required
                     disabled={submission.isSubmitting}
-                    step="0.25"
-                    min="0"
+                    inputMode="numeric"
+                    pattern="\\d{1,3}:[0-5]\\d"
+                    placeholder="HHH:MM"
                   />
                 }
               />
