@@ -127,6 +127,7 @@ interface DailyRegistryFormState {
   startTime: string;
   finishTime: string;
   projectFile: string;
+  actualVolumeCut: string;
   timeRemainStart: string;
   timeRemainEnd: string;
   downtimeHrs: string;
@@ -149,6 +150,7 @@ function createInitialFormState(): DailyRegistryFormState {
     startTime: "",
     finishTime: "",
     projectFile: "",
+    actualVolumeCut: "",
     timeRemainStart: "",
     timeRemainEnd: "",
     downtimeHrs: "",
@@ -209,6 +211,7 @@ export function OperationsFormPage() {
         startTime: formState.startTime.trim(),
         finishTime: formState.finishTime.trim(),
         projectFile: formState.projectFile.trim(),
+        actualVolumeCut: normalizeOptionalNumberField(formState.actualVolumeCut),
         timeRemainStart: normalizeNumberField(formState.timeRemainStart),
         timeRemainEnd: normalizeNumberField(formState.timeRemainEnd),
         downtimeHrs: normalizeOptionalNumberField(formState.downtimeHrs),
@@ -354,6 +357,23 @@ export function OperationsFormPage() {
                   />
                 }
               />
+              <FormField
+                id="actualVolumeCut"
+                label="Actual volume cut"
+                hint="Enter the total volume produced this shift"
+                input={
+                  <input
+                    id="actualVolumeCut"
+                    name="actualVolumeCut"
+                    type="number"
+                    value={formState.actualVolumeCut}
+                    onChange={handleChange}
+                    disabled={submission.isSubmitting}
+                    step="0.01"
+                    min="0"
+                  />
+                }
+              />              
               <FormField
                 id="timeRemainStart"
                 label="Time remaining (start)"
