@@ -160,7 +160,8 @@ export async function submitDailyRegistryEntry(
 
   //Explicit success detection
   if (response.ok && data && data.ok === true && typeof data.row === "number"){
-    return { ok: true, row: data.row } as DailyRegistrySuccessResponse;
+    console.log("[api] returning success with row:", data.row);
+    return { ok: true, row: data.row };
   }
 
   //Handle explicit error JSON or HTTTP error

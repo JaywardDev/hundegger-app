@@ -57,7 +57,10 @@ function useOperationsFormSubmission() {
       });
 
       try {
+        console.log("[hook] calling submitDailyRegistryEntry with:", payload);
         const result = await submitDailyRegistryEntry(payload);
+        console.log("[hook] success result:", result);
+
         setState({
           status: "success",
           message: `Entry saved to row ${result.row}.`,
@@ -67,6 +70,7 @@ function useOperationsFormSubmission() {
         });
         return result;
       } catch (error) {
+        console.log("[hook] error:", error)
         const operationsError = isOperationsFormError(error)
           ? error
           : new OperationsFormError(
@@ -218,9 +222,11 @@ export function OperationsFormPage() {
       };
 
       try {
-        await submission.submit(payload);
-      } catch {
-        // Errors are surfaced through the submission banner.
+        console.log("[page] calling submission.submit");
+        const res = await submission.submit(payload);
+        console.log("[page] submit success:", res);
+      } catch (e) {
+        console.log("[page] submit error:", e);
       }
     },
     [formState, submission]
