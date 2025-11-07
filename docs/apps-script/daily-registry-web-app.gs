@@ -78,7 +78,21 @@ function doPost(e) {
       );
     }
 
-    const nextRow = sheet.getLastRow() + 1;
+    function findNextDataRow_(sheet) {
+      const max = sheet.getMaxRows();
+      const values = sheet.getRange(2, 1, Math.max(0, max - 1), 1).getDisplayValues();
+      const idx = values.findIndex(r => !r[0]);
+      return idx === -1 ? max + 1 : idx + 2;
+    }
+
+    const nextRow = findNextDataRow_(sheet);
+
+    function findNextDataRow_(sheet) {
+      const max = sheet.getMaxRows();
+      const values = sheet.getRange(2, 1, max - 1, 1).getDisplayValues();
+      const idx = values.findIndex(r => !r[0]);
+      return idx === -1 ? max + 1 : idx + 2;
+    }
 
     const updates = [
       { column: 1, value: parseDateValue(payload.date) },
@@ -86,6 +100,7 @@ function doPost(e) {
       { column: 4, value: payload.startTime },
       { column: 5, value: payload.finishTime },
       { column: 7, value: payload.projectFile },
+      { column: 12, value: payload.actualVolumeCut },
       { column: 10, value: payload.timeRemainStart },
       { column: 11, value: payload.timeRemainEnd },
       { column: 16, value: payload.downtimeHrs },
@@ -95,8 +110,8 @@ function doPost(e) {
     ];
 
     updates.forEach(function (entry) {
-      const cleanedValue = entry.value === undefined || entry.value === null ? '' : entry.value;
-      sheet.getRange(nextRow, entry.column).setValue(cleanedValue);
+      const cleaned = entry.value === undefined || entry.value === null ? '' : entry.value;
+      sheet.getRange(nextRow, entry.column).setValue(cleaned);
     });
 
     return createSuccessResponse({ ok: true, row: nextRow });
