@@ -138,7 +138,20 @@ export async function submitDailyRegistryEntry(
   const raw = await response.text();
   console.log("[client] status:", response.status, "ctype:", ctype, "raw:", raw.slice(0,200));
   
-  let data: any = null;
+  type SuccessPayload = {
+    ok: true;
+    row: number;
+  };
+
+  type ErrorPayload = {
+    error?: {
+      message?: unknown;
+      code?: string;
+      details?: unknown;
+    };
+  };
+
+  let data: unknown = null;
   try {
     data = raw ? JSON.parse(raw) : null;
   } catch (err) {
@@ -146,21 +159,26 @@ export async function submitDailyRegistryEntry(
       kind: "http",
       status: response.status,
       cause: err,
-    })
+    });
   }
 
-  //Explicit success detection
-  if (response.ok && data && data.ok === true && typeof data.row === "number"){
-    console.log("[api] returning success with row:", data.row);
-    return { ok: true, row: data.row };
+  const parsed = data as Partial<SuccessPayload> & ErrorPayload;
+
+  // Explicit success detection
+  if (response.ok && parsed.ok === true && typeof parsed.row === "number") {
+    console.log("[api] returning success with row:", parsed.row);
+    return { ok: true, row: parsed.row };
   }
 
-  //Handle explicit error JSON or HTTTP error
-  const message = data?.error?.message ?? 'Request failed with status ${response.status}.';
+  // Handle explicit error JSON or HTTP error
+  const message =
+    typeof parsed.error?.message === "string"
+      ? parsed.error.message
+      : `Request failed with status ${response.status}.`;
   throw new OperationsFormError(message, {
     kind: "http",
     status: response.status,
-    code: data?.error?.code,
-    details: data?.error?.details,
+    code: parsed.error?.code,
+    details: parsed.error?.details,
   });
 }

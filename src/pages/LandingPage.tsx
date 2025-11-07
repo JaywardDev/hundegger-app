@@ -31,16 +31,7 @@ export function LandingPage() {
             <span aria-hidden="true" className="cta-icon">
               →
             </span>
-          </button>
-          <button
-            className="cta-button cta-button--secondary"
-            onClick={() => navigate("operationsForm")}
-          >
-            Operations form (beta)
-            <span aria-hidden="true" className="cta-icon">
-              →
-            </span>
-          </button>          
+          </button>    
         </div>
         <div className="landing-meta" aria-hidden="true">
           <span>About</span>
