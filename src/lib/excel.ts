@@ -21,12 +21,12 @@ export async function exportWorkbook(matrix: Record<Bay, Record<Level, Cell | nu
         excelCell.value = "";
       } else if (cell.items.length === 1) {
         const it = cell.items[0];
-        excelCell.value = `${it.size_id} • ${it.length_mm} • ${it.pieces}`;
+        excelCell.value = formatItemSummary(it);
       } else {
         const [first, ...rest] = cell.items;
-        excelCell.value = `${first.size_id} • ${first.length_mm} • ${first.pieces} +${rest.length}`;
+        excelCell.value = `${formatItemSummary(first)} +${rest.length}`;
         const comment = cell.items
-          .map((it) => `${it.size_id} | ${it.length_mm} | ${it.pieces}`)
+          .map((it) => formatItemSummary(it))
           .join("\n");
         // comments are supported in ExcelJS via note
         excelCell.note = comment;
@@ -76,7 +76,22 @@ export async function exportWorkbook(matrix: Record<Bay, Record<Level, Cell | nu
   });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `Timber_12m_Stocktake_${new Date().toISOString().slice(0,10)}.xlsx`;
+  a.download = `Timber_Stocktake_${new Date().toISOString().slice(0,10)}.xlsx`;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+function formatItemSummary(it: Cell["items"][number]) {
+  const parts = [it.size_id];
+  if (it.length_mm !== 12000) {
+    parts.push(`${it.length_mm}mm`);
+  }
+  if (it.grade && it.grade !== "LVL11") {
+    parts.push(it.grade);
+  }
+  if (it.treatment && it.treatment !== "H1.2") {
+    parts.push(it.treatment);
+  }
+
+  return `${parts.join(" ")} (${it.pieces})`;
 }
