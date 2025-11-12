@@ -816,13 +816,13 @@ input:focus {
 
 .stack-grid-wrap {
   overflow-x: auto;
+  overflow-y: hidden;
   background: var(--surface);
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-soft);
   padding: clamp(22px, 3.5vw, 34px);
   position: relative;
-  overflow: hidden;
 }
 
 .stack-grid-wrap::before {
@@ -1069,8 +1069,7 @@ input:focus {
         rgba(29, 31, 35, 0.05) 1px,
         transparent 1px,
         transparent 18px
-      ),
-    radial-gradient(90% 120% at 50% 0%, rgba(255, 214, 0, 0.14) 0%, transparent 65%);
+      );
   pointer-events: none;
   mix-blend-mode: multiply;
 }
@@ -1124,7 +1123,6 @@ input:focus {
   border-radius: 8px;
   clip-path: polygon(1.8% 0%, 98.2% 0%, 100% 8%, 100% 92%, 98.2% 100%, 1.8% 100%, 0% 92%, 0% 8%);
   background:
-    linear-gradient(190deg, rgba(255, 255, 255, 0.92) 0%, rgba(236, 238, 240, 0.9) 65%),
     url("/images/timber-image-600x180.png");
   background-size: cover;
   background-position: center;
@@ -1276,8 +1274,8 @@ input:focus {
   opacity: 1;
 }
 
-.stack-timber--matched .stack-timber__label {
-  color: #1d1f23;
+.stack-timber--matched .stack-timber__label-card {
+  color: red
 }
 
 .stack-timber--matched .stack-timber__meta {
