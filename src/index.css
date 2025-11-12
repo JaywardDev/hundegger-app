@@ -128,7 +128,9 @@ input:focus {
   padding: clamp(32px, 8vw, 120px);
   position: relative;
   overflow: hidden;
-  background: var(--bg);
+  background-image: url("/images/under-construction.png");
+  background-position: center;
+  background-size: cover;
 }
 
 .landing-page::before {
