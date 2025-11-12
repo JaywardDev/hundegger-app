@@ -2,6 +2,7 @@ import http from "http";
 import { promises as fs } from "fs";
 import path from "path";
 import { fileURLToPath, URL } from "url";
+import 'dotenv/config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,8 +12,8 @@ const MATRIX_FILE = path.join(DATA_DIR, "matrix.json");
 const STATIC_DIR = path.resolve(__dirname, "..", "dist");
 const STATIC_INDEX = path.join(STATIC_DIR, "index.html");
 
-const DAILY_REGISTRY_WEB_APP_URL = process.env.DAILY_REGISTRY_WEB_APP_URL ?? "https://script.google.com/macros/s/AKfycbwBWyLdOyzcc5aV878vfCIhsOmI5s1DqNLuGIBed2YdrMCd2gXL9MxEeBis2GH2vr8M/exec";
-const DAILY_REGISTRY_API_TOKEN = process.env.DAILY_REGISTRY_API_TOKEN ?? "u2FsdGVkX1_nJ5k7Q3xRrYH2";
+const DAILY_REGISTRY_WEB_APP_URL = process.env.DAILY_REGISTRY_WEB_APP_URL;
+const DAILY_REGISTRY_API_TOKEN = process.env.DAILY_REGISTRY_API_TOKEN;
 const configuredTimeout = Number(process.env.DAILY_REGISTRY_TIMEOUT_MS ?? "");
 const DAILY_REGISTRY_TIMEOUT_MS = Number.isFinite(configuredTimeout) && configuredTimeout > 0
   ? configuredTimeout
