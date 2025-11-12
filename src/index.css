@@ -178,12 +178,14 @@ input:focus {
 }
 
 .brand-mark {
-  width: 52px;
-  height: 52px;
+  width: 90px;
+  height: 100%;
   border-radius: 8px;
   display: grid;
   place-items: center;
-  background: var(--accent);
+  background-image: url("/images/HENZ_logo_HE.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
   border: 2px solid #1d1f23;
   font-size: 28px;
   color: #1d1f23;

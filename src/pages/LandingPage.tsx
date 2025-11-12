@@ -7,7 +7,7 @@ export function LandingPage() {
     <main className="landing-page">
       <section className="landing-card" aria-labelledby="landing-title">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">◦</span>
+          <span className="brand-mark" aria-hidden="true"></span>
           <div>
             <p className="brand-label">Hector Egger NZ</p>
             <h1 id="landing-title">HUNDEGGER</h1>
