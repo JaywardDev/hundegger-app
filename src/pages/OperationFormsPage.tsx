@@ -166,7 +166,7 @@ function normalizeDurationField(value: string): string {
     return trimmed;
   }
 
-  const durationPattern = /^(\d{1,3}):([0-5]\d)$/;
+  const durationPattern = new RegExp("^(\\d{1,3}):([0-5]\\d)$");
   const match = durationPattern.exec(trimmed);
   if (!match) {
     return trimmed;
