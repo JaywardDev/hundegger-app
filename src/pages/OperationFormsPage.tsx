@@ -209,6 +209,15 @@ export function OperationsFormPage() {
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = event.target;
+
+    if (name === "timeRemainStart" || name === "timeRemainEnd") {
+      const sanitized = value
+        .replace(/\u2236|\uFF1A/g, ":")
+        .replace(/\s+/g, "");
+      setFormState((c) => ({ ...c, [name]: sanitized }));
+      return;
+    }
+
       setFormState((current) => ({ ...current, [name]: value }));
     },
     []
@@ -402,7 +411,7 @@ export function OperationsFormPage() {
                     required
                     disabled={submission.isSubmitting}
                     inputMode="numeric"
-                    pattern="\\d{1,3}:[0-5]\\d"
+                    pattern={String.raw`^\d{1,3}:[0-5]\d$`}
                     placeholder="HHH:MM"
                   />
                 }
@@ -422,7 +431,7 @@ export function OperationsFormPage() {
                     required
                     disabled={submission.isSubmitting}
                     inputMode="numeric"
-                    pattern="\\d{1,3}:[0-5]\\d"
+                    pattern={String.raw`^\d{1,3}:[0-5]\d$`}
                     placeholder="HHH:MM"
                   />
                 }
