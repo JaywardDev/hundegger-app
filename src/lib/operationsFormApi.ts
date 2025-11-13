@@ -32,7 +32,7 @@ const resolveDefaultWebAppUrl = (): string => {
   }
 
   if (typeof window !== "undefined") {
-    return "/daily-registry";
+    return "/api/daily-registry";
   }
 
   const base = API_BASE_URL;
