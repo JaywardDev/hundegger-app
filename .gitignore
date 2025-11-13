@@ -27,3 +27,4 @@ dist-ssr
 docs/apps-script/
 
 .env
+server/data/
