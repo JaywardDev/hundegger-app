@@ -521,7 +521,9 @@ input:focus {
 .stock-page {
   min-height: 100%;
   padding: clamp(24px, 5vw, 64px) clamp(16px, 6vw, 80px);
-  background: var(--bg-alt);
+  background-image: url("/images/timber-factory.png");
+  background-position: center;
+  background-size: cover;
 }
 
 .stock-page--auth-open .stock-page__inner {
@@ -605,7 +607,7 @@ input:focus {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: var(--surface);
+  background-color: rgba(255, 255, 255, 0.5);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   padding: 18px 24px;
@@ -671,7 +673,7 @@ input:focus {
 .summary-card {
   display: grid;
   gap: 20px;
-  background: var(--surface);
+  background-color: rgba(255, 255, 255, 0.5);
   border-radius: var(--radius-lg);
   padding: 28px clamp(20px, 4vw, 36px);
   box-shadow: var(--shadow-soft);
@@ -698,7 +700,7 @@ input:focus {
 .summary-card__metrics div {
   display: grid;
   gap: 4px;
-  background: var(--surface-soft);
+  background-color: rgba(255, 255, 255, 0.7);
   border-radius: var(--radius-sm);
   padding: 12px;
 }
@@ -821,7 +823,7 @@ input:focus {
 .stack-grid-wrap {
   overflow-x: auto;
   overflow-y: hidden;
-  background: var(--surface);
+  background-color: rgba(255, 255, 255, 0.4);
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-soft);
@@ -834,15 +836,6 @@ input:focus {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background:
-      repeating-linear-gradient(
-        90deg,
-        rgba(29, 31, 35, 0.05) 0px,
-        rgba(29, 31, 35, 0.05) 1px,
-        transparent 1px,
-        transparent 22px
-      ),
-    linear-gradient(135deg, rgba(255, 214, 0, 0.08) 0%, transparent 70%);
   pointer-events: none;
   mix-blend-mode: multiply;
 }
@@ -1055,8 +1048,8 @@ input:focus {
   height: 100%;
   border-radius: 20px 20px 16px 16px;
   border: 1px solid rgba(29, 31, 35, 0.2);
-  background: linear-gradient(180deg, #ffffff 0%, #f1f2f4 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
   padding: 0 20px 32px;
   overflow: hidden;
 }
