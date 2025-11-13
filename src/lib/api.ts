@@ -1,14 +1,7 @@
+import { API_BASE_URL } from "./apiBaseUrl";
 import type { Bay, Cell, Level } from "./types";
 
 export type MatrixPayload = Record<Bay, Record<Level, Cell | null>>;
-
-const fallbackHost = () => {
-  if (typeof window === "undefined") return "http://localhost:4000";
-  const { protocol, hostname } = window.location;
-  return `${protocol}//${hostname}:4000`;
-};
-
-const API_BASE_URL = import.meta.env.VITE_MATRIX_API_URL ?? fallbackHost();
 
 const request = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
   const res = await fetch(`${API_BASE_URL}${path}`, {

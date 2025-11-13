@@ -1,3 +1,5 @@
+import { API_BASE_URL } from "./apiBaseUrl";
+
 export interface DailyRegistryPayload {
   date: string;
   operator: string;
@@ -33,15 +35,7 @@ const resolveDefaultWebAppUrl = (): string => {
     return "/daily-registry";
   }
 
-  const fallbackApiHost = (): string => {
-    const configured = import.meta.env.VITE_MATRIX_API_URL;
-    if (configured) {
-      return configured;
-    }
-    return "http://localhost:4000";
-  };
-
-  const base = fallbackApiHost();
+  const base = API_BASE_URL;
   try {
     return new URL("/daily-registry", base).toString();
   } catch (error) {

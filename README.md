@@ -30,10 +30,10 @@ npm run dev
 ```
 
 By default the frontend expects the API at `http://localhost:4000`. Override
-this by setting `VITE_MATRIX_API_URL` before starting Vite, e.g.
+this by setting `VITE_API_URL` before starting Vite, e.g.
 
 ```bash
-VITE_MATRIX_API_URL=http://matrix-pc:4000 npm run dev
+VITE_API_URL=http://matrix-pc:4000 npm run dev
 ```
 
 ## Production notes
