@@ -128,7 +128,7 @@ input:focus {
   padding: clamp(32px, 8vw, 120px);
   position: relative;
   overflow: hidden;
-  background-image: url("/images/under-construction.png");
+  background-image: url("/public/images/under-construction.png");
   background-position: center;
   background-size: cover;
 }
@@ -185,7 +185,7 @@ input:focus {
   border-radius: 8px;
   display: grid;
   place-items: center;
-  background-image: url("/images/HENZ_logo_HE.jpg");
+  background-image: url("/public/images/HENZ_logo_HE.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   border: 2px solid #1d1f23;
@@ -521,7 +521,7 @@ input:focus {
 .stock-page {
   min-height: 100%;
   padding: clamp(24px, 5vw, 64px) clamp(16px, 6vw, 80px);
-  background-image: url("/images/timber-factory.png");
+  background-image: url("/public/images/timber-factory.png");
   background-position: center;
   background-size: cover;
 }
@@ -1120,7 +1120,7 @@ input:focus {
   border-radius: 8px;
   clip-path: polygon(1.8% 0%, 98.2% 0%, 100% 8%, 100% 92%, 98.2% 100%, 1.8% 100%, 0% 92%, 0% 8%);
   background:
-    url("/images/timber-image-600x180.png");
+    url("/public/images/timber-image-600x180.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
