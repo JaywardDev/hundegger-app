@@ -23,10 +23,10 @@ const request = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
   return data as T;
 };
 
-export const fetchMatrix = () => request<MatrixPayload>("/matrix");
+export const fetchMatrix = () => request<MatrixPayload>("/api/matrix");
 
 export const persistMatrix = (matrix: MatrixPayload) =>
-  request<MatrixPayload>("/matrix", {
+  request<MatrixPayload>("/api/matrix", {
     method: "PUT",
     body: JSON.stringify(matrix)
   });
