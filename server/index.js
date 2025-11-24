@@ -33,6 +33,27 @@ const buildEmptyMatrix = () => {
   return matrix;
 };
 
+const ensureBayLevels = (bay, levels) => {
+  const source = levels && typeof levels === "object" ? levels : {};
+  const next = {};
+
+  for (const level of LEVELS) {
+    const cell = source[level];
+    if (cell && typeof cell === "object") {
+      next[level] = {
+        ...cell,
+        bay,
+        level,
+        items: Array.isArray(cell.items) ? cell.items : []
+      };
+    } else {
+      next[level] = null;
+    }
+  }
+
+  return next;
+};
+
 const ensureMatrixShape = (matrix) => {
   const next = buildEmptyMatrix();
   if (!matrix || typeof matrix !== "object") return next;
@@ -77,7 +98,7 @@ async function writeMatrixFile(matrix) {
 
 const ALLOWED_ORIGIN = process.env.MATRIX_SERVER_ALLOW_ORIGIN ?? "*";
 
-const ALLOWED_METHODS = "GET,PUT,POST,OPTIONS";
+const ALLOWED_METHODS = "GET,PUT,POST,PATCH,OPTIONS";
 
 const sendJson = (res, statusCode, payload) => {
   const body = JSON.stringify(payload);
@@ -292,6 +313,26 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "PATCH" && pathname === "/matrix") {
+      const payload = await parseBody(req);
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+        sendJson(res, 400, { error: "Matrix payload must be an object" });
+        return;
+      }
+
+      const bay = payload.bay;
+      if (!bay || !BAYS.includes(bay)) {
+        sendJson(res, 400, { error: "Matrix payload must include a valid bay" });
+        return;
+      }
+
+      const matrix = await readMatrixFile();
+      matrix[bay] = ensureBayLevels(bay, payload.levels);
+      await writeMatrixFile(matrix);
+      sendJson(res, 200, matrix);
+      return;
+    }
+        
     if (req.method === "POST" && pathname === "/daily-registry") {
       const payload = await parseBody(req);
       if (!payload || typeof payload !== "object" || Array.isArray(payload)) {

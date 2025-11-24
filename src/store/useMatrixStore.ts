@@ -9,7 +9,8 @@ import {
 } from "../lib/types";
 import {
   fetchMatrix,
-  persistMatrix,
+  persistBay,
+  type BayPayload,
   type MatrixPayload
 } from "../lib/api";
 import type { AuthenticatedUser } from "../lib/users";
@@ -98,11 +99,11 @@ const rebuildBayLevels = (
 };
 
 export const useMatrixStore = create<MatrixStore>()((set, get) => {
-  const pushMatrix = async (matrix: MatrixPayload) => {
+  const pushBay = async (bay: Bay, levels: BayPayload) => {
     set({ syncing: true, error: undefined });
     try {
-      await persistMatrix(matrix);
-      set({ syncing: false });
+      const remote = await persistBay(bay, levels);
+      set({ syncing: false, matrix: ensureMatrixShape(remote) });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to sync matrix";
@@ -178,7 +179,7 @@ export const useMatrixStore = create<MatrixStore>()((set, get) => {
 
       set({ matrix: next, editor: { open: false } });
       try {
-        await pushMatrix(next);
+        await pushBay(bay, next[bay]);
       } catch {
         set({ matrix: previous });
       }
@@ -190,7 +191,7 @@ export const useMatrixStore = create<MatrixStore>()((set, get) => {
       next[bay][level] = null;
       set({ matrix: next });
       try {
-        await pushMatrix(next);
+        await pushBay(bay, next[bay]);
       } catch {
         set({ matrix: previous });
       }
@@ -220,7 +221,7 @@ export const useMatrixStore = create<MatrixStore>()((set, get) => {
 
       set({ matrix: next });
       try {
-        await pushMatrix(next);
+        await pushBay(bay, next[bay]);
       } catch {
         set({ matrix: previous });
       }

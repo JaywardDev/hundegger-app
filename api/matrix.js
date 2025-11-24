@@ -14,6 +14,27 @@ const buildEmptyMatrix = () => {
   return matrix;
 };
 
+const ensureBayLevels = (bay, levels) => {
+  const source = levels && typeof levels === "object" ? levels : {};
+  const next = {};
+
+  for (const level of LEVELS) {
+    const cell = source[level];
+    if (cell && typeof cell === "object") {
+      next[level] = {
+        ...cell,
+        bay,
+        level,
+        items: Array.isArray(cell.items) ? cell.items : []
+      };
+    } else {
+      next[level] = null;
+    }
+  }
+
+  return next;
+};
+
 const ensureMatrixShape = (matrix) => {
   const next = buildEmptyMatrix();
   if (!matrix || typeof matrix !== "object") return next;
@@ -196,6 +217,59 @@ const replaceMatrix = async (supabase, matrix) => {
   }
 };
 
+const replaceBay = async (supabase, bay, levels) => {
+  const ensuredLevels = ensureBayLevels(bay, levels);
+
+  const { data: existingCells, error: fetchError } = await supabase
+    .from("stock_cells")
+    .select("id")
+    .eq("area_id", "default")
+    .eq("bay_code", bay);
+  if (fetchError) throw fetchError;
+
+  const cellIds = Array.isArray(existingCells) ? existingCells.map((cell) => cell.id) : [];
+  if (cellIds.length > 0) {
+    const { error: deleteItemsError } = await supabase
+      .from("stock_items")
+      .delete()
+      .in("cell_id", cellIds);
+    if (deleteItemsError) throw deleteItemsError;
+  }
+
+  const { error: deleteCellsError } = await supabase
+    .from("stock_cells")
+    .delete()
+    .eq("area_id", "default")
+    .eq("bay_code", bay);
+  if (deleteCellsError) throw deleteCellsError;
+
+  for (const level of LEVELS) {
+    const cell = ensuredLevels[level];
+    if (!cell) continue;
+
+    const { data: insertedCell, error: insertCellError } = await supabase
+      .from("stock_cells")
+      .insert({
+        area_id: "default",
+        bay_code: bay,
+        level_code: level,
+        locked: Boolean(cell.locked),
+        updated_by: cell.updated_by ?? null
+      })
+      .select()
+      .single();
+    if (insertCellError) throw insertCellError;
+
+    const itemsPayload = mapItems(cell.items, insertedCell.id);
+    if (itemsPayload.length > 0) {
+      const { error: insertItemsError } = await supabase
+        .from("stock_items")
+        .insert(itemsPayload);
+      if (insertItemsError) throw insertItemsError;
+    }
+  }
+};
+
 export default async function handler(req, res) {
   let supabase;
   try {
@@ -243,6 +317,31 @@ export default async function handler(req, res) {
     return;
   }
 
-  res.setHeader("Allow", "GET, PUT");
+  if (req.method === "PATCH") {
+    try {
+      const payload = await parseRequestBody(req);
+      const bay = payload?.bay;
+
+      if (!payload || typeof payload !== "object" || !bay) {
+        res.status(400).json({ error: "Invalid bay payload" });
+        return;
+      }
+
+      if (!BAYS.includes(bay)) {
+        res.status(400).json({ error: "Bay is out of range" });
+        return;
+      }
+
+      await replaceBay(supabase, bay, payload.levels);
+      const matrix = await fetchMatrix(supabase);
+      res.status(200).json(matrix);
+    } catch (error) {
+      console.error("Matrix PATCH error", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+    return;
+  }
+
+  res.setHeader("Allow", "GET, PUT, PATCH");
   res.status(405).json({ error: "Method not allowed" });
-}  
+} 
