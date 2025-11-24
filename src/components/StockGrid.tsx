@@ -275,6 +275,15 @@ export const StockGrid: React.FC<StockGridProps> = ({ matchedCells }) => {
   const [dragState, setDragState] = React.useState<DragState | null>(null);
   const dragPreventClickRef = React.useRef(false);
   const lastTouchTapRef = React.useRef<{ time: number; id: string } | null>(null);
+  const longPressTimerRef = React.useRef<number | null>(null);
+  const longPressTriggeredRef = React.useRef(false);
+
+  const clearLongPress = React.useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);  
 
   const openEditor = React.useCallback(
     (bay: Bay, level: Level, intent: "add" | "edit") => {
@@ -384,6 +393,15 @@ export const StockGrid: React.FC<StockGridProps> = ({ matchedCells }) => {
       const index = activeStacks.findIndex((item) => item.id === stack.id);
       if (index === -1) return;
       dragPreventClickRef.current = false;
+      longPressTriggeredRef.current = false;
+      clearLongPress();
+      if (event.pointerType === "touch") {
+        longPressTimerRef.current = window.setTimeout(() => {
+          longPressTimerRef.current = null;
+          longPressTriggeredRef.current = true;
+          handleEditStack(stack.bay, stack.level);
+        }, 500);
+      }      
       event.preventDefault();
       event.currentTarget.setPointerCapture(event.pointerId);
       setDragState({
@@ -397,7 +415,7 @@ export const StockGrid: React.FC<StockGridProps> = ({ matchedCells }) => {
         hasMoved: false
       });
     },
-    [editingEnabled]
+    [clearLongPress, editingEnabled, handleEditStack]
   );
 
   const handleDragMove = React.useCallback(
@@ -412,7 +430,10 @@ export const StockGrid: React.FC<StockGridProps> = ({ matchedCells }) => {
         }
 
         const delta = event.clientY - state.startY;
-        if (Math.abs(delta) > 4) dragPreventClickRef.current = true;
+        if (Math.abs(delta) > 4) {
+          dragPreventClickRef.current = true;
+          clearLongPress();
+        }
 
         const displacement = Math.round(-delta / TIMBER_STEP);
         let targetIndex = state.originIndex + displacement;
@@ -445,14 +466,17 @@ export const StockGrid: React.FC<StockGridProps> = ({ matchedCells }) => {
         return { ...state, offset: delta };
       });
     },
-    [editingEnabled, setColumns]
+    [clearLongPress, editingEnabled, setColumns]
   );
 
   const handleDragEnd = React.useCallback(
     (event: React.PointerEvent<HTMLButtonElement>, stack: VisualStack) => {
       const target = event.currentTarget;
-      const pointerType = event.pointerType;      
+      const pointerType = event.pointerType;
       let shouldRequestEdit = false;
+      const wasLongPress = longPressTriggeredRef.current;
+      longPressTriggeredRef.current = false;
+      clearLongPress();      
 
       setDragState((state) => {
         if (!state || state.id !== stack.id) return state;
@@ -474,11 +498,15 @@ export const StockGrid: React.FC<StockGridProps> = ({ matchedCells }) => {
             .map((item) => item.id);
           void reorderBay(stack.bay, activeStacks);
           dragPreventClickRef.current = true;
-          lastTouchTapRef.current = null;          
+          lastTouchTapRef.current = null;
+          clearLongPress();        
         } else {
           dragPreventClickRef.current = false;
 
-          if (pointerType === "touch") {
+          if (wasLongPress) {
+            dragPreventClickRef.current = true;
+            lastTouchTapRef.current = null;
+          } else if (pointerType === "touch") {
             const now = Date.now();
             const tapId = stack.id;
             const lastTap = lastTouchTapRef.current;
@@ -501,7 +529,7 @@ export const StockGrid: React.FC<StockGridProps> = ({ matchedCells }) => {
         handleEditStack(stack.bay, stack.level);
       }
     },
-    [handleEditStack, reorderBay, setColumns]
+    [clearLongPress, handleEditStack, reorderBay, setColumns]
   );
 
   const handleEnterComplete = React.useCallback((bay: Bay, id: string) => {
