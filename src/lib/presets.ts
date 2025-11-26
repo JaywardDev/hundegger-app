@@ -23,13 +23,16 @@ export const SIZE_PRESETS = [
   { id: "180x360", width_mm: 360, thickness_mm: 180 },
   { id: "180x400", width_mm: 400, thickness_mm: 180 },
   { id: "180x460", width_mm: 460, thickness_mm: 180 },
+  { id: "180x540", width_mm: 540, thickness_mm: 180 },  
   { id: "225x460", width_mm: 460, thickness_mm: 225 },
 ];
-export const LENGTH_PRESETS_MM = [12000, 6000, 8900];
+export const LENGTH_PRESETS_MM = [12000, 6000, 7000, 8900];
 
 export const GRADE_PRESETS = [
     "LVL11",
-    "LVL11 visual"
+    "LVL11 visual",
+    "LVL13",
+    "LVL13 visual"
 ];
 
 export const TREATMENT_PRESETS = [

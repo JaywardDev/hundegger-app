@@ -29,7 +29,7 @@ export type Cell = {
 
 export type Snapshot = {
   id: string;
-  area: "12m Floor";
+  area: "Factory";
   taken_at: string;
   taken_by: string;
   matrix: Record<Bay, Record<Level, Cell | null>>;
