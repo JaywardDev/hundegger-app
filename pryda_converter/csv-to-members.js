@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const AdmZip = require("adm-zip");
 
 if (!process.argv[2]) {
   console.error("Usage: node csv-to-members.js <input-file> [jobName]");
@@ -104,6 +105,12 @@ fs.writeFileSync(
   JSON.stringify(result, null, 2),
   "utf8"
 );
+
+const zip = new AdmZip();
+zip.addFile("members.json", Buffer.from(JSON.stringify(result, null, 2), "utf8"));
+
+const outName = `${jobName}.psf`;
+zip.writeZip(outName);
 
 console.log(
   `Created members.json for job "${jobName}" with ${members.length} members.`
