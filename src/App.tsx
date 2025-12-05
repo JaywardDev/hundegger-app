@@ -1,6 +1,7 @@
 import "./index.css";
 import { RouterProvider, useRouter } from "./lib/router";
 import { LandingPage } from "./pages/LandingPage";
+import { PrydaConversionPage } from "./pages/PrydaConversionPage";
 import { StockPage } from "./pages/StockPage";
 import { OperationsFormPage } from "./pages/OperationFormsPage";
 
@@ -13,7 +14,11 @@ function AppRoutes() {
 
   if (route === "operations") {
     return <OperationsFormPage />;
-  } 
+  }
+
+  if (route === "pryda") {
+    return <PrydaConversionPage />;
+  }
 
   return <LandingPage />;
 }

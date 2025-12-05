@@ -31,7 +31,16 @@ export function LandingPage() {
             <span aria-hidden="true" className="cta-icon">
               →
             </span>
-          </button>    
+          </button>
+          <button
+            className="cta-button cta-button--secondary"
+            onClick={() => navigate("pryda")}
+          >
+            Pryda Converter
+            <span aria-hidden="true" className="cta-icon">
+              →
+            </span>
+          </button>          
         </div>
         <div className="landing-meta" aria-hidden="true">
           <span>About</span>
