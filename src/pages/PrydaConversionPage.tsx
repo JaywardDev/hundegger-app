@@ -303,8 +303,8 @@ export function PrydaConversionPage() {
           <div>
             <h1 id="pryda-title">CSV to PSF</h1>
             <p className="pryda-card__lede">
-              Upload a dot-separated CSV export, provide a job name, and download a PSF archive ready
-              for Hundegger.
+              Upload CSV export and download a PSF archive ready
+              for Pryda.
             </p>
           </div>
         </header>
