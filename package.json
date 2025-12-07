@@ -12,14 +12,14 @@
     "dev:all": "concurrently \"npm run server\" \"npm run dev -- --host\""
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.48.0",
     "dexie": "^4.2.1",
     "dotenv": "^17.2.3",
     "exceljs": "^4.4.0",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
     "xlsx": "^0.18.5",
-    "zustand": "^5.0.8",
-    "@supabase/supabase-js": "^2.48.0"
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
