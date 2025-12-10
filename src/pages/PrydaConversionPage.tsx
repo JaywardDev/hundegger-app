@@ -134,26 +134,112 @@ const parseMembers = (contents: string, jobName: string) => {
 
   for (const [index, rawLine] of lines.entries()) {
     const line = rawLine.replace(/^\uFEFF/, "");
+
+    // ─────────────────────────────────────────────
+    // NEW FORMAT: semicolon-separated
+    // Example:
+    // 13;R_0016 R_0008;Blocking;Pine;3;35;70;616
+    // truss;memberList;type;material;qty;thk;width;length
+    // ─────────────────────────────────────────────
+    if (line.includes(";")) {
+      const parts = line.split(";");
+
+      if (parts.length !== 8) {
+        throw new Error(
+          `Line ${index + 1} has ${parts.length} fields (semicolon format). Expected 8.`
+        );
+      }
+
+      const [
+        trussRaw,
+        memberRaw,
+        typeRaw,
+        materialRaw,
+        qtyStr,
+        thkStr,
+        widthStr,
+        lengthStr,
+      ] = parts;
+
+      const truss = trussRaw.trim();
+      const member = memberRaw.trim();       // full "R_0016 R_0008 …"
+      const type = typeRaw.trim();
+      const materialBase = materialRaw.trim();
+
+      const quantity = Number(qtyStr);
+      const thickness = parseMillimeter(thkStr);
+      const width = parseMillimeter(widthStr);
+      const length = parseMillimeter(lengthStr);
+
+      if ([quantity, thickness, width, length].some((value) => Number.isNaN(value))) {
+        throw new Error(`Line ${index + 1} contains invalid numeric values.`);
+      }
+
+      members.push({
+        ID: index + 1,                         // no ID in new format; use line number
+        job: jobName,
+        truss,
+        member,
+        type,
+        width,
+        thickness,
+        length,
+        material: `${width}x${thickness} ${materialBase}`, // e.g. "70x35 Pine"
+        quantity,
+        done: 0,
+        cuts: [
+          {
+            endCut: {
+              end: 1,
+              location: 0,
+              angle: 90,
+              angleOffset: 0,
+            },
+          },
+          {
+            endCut: {
+              end: 2,
+              location: length,
+              angle: 90,
+              angleOffset: 0,
+            },
+          },
+        ],
+      });
+
+      continue; // skip dot-format parsing for this line
+    }
+
+    // ─────────────────────────────────────────────
+    // OLD FORMAT: dot-separated
+    // 47.429.Roof.R_0016.Blocking.Pine.1.35:00.70:00.616:00.616:00
+    // ─────────────────────────────────────────────
     const parts = line.split(".");
 
     if (parts.length !== 10 && parts.length !== 11) {
-      throw new Error(`Line ${index + 1} has ${parts.length} fields. Expected 10 or 11.`);
+      throw new Error(
+        `Line ${index + 1} has ${parts.length} fields (dot format). Expected 10 or 11.`
+      );
     }
 
     let idStr: string;
     let truss: string;
     let member: string;
     let type: string;
-    let material: string;
+    let materialBase: string;
     let qtyStr: string;
     let thkStr: string;
     let widthStr: string;
     let lengthStr: string;
 
     if (parts.length === 11) {
-      [idStr, , truss, member, type, material, qtyStr, thkStr, widthStr, lengthStr] = parts;
+      // ID.frame.truss.member.type.material.qty.thk.width.len.total
+      [idStr, , truss, member, type, materialBase, qtyStr, thkStr, widthStr, lengthStr] =
+        parts;
     } else {
-      [idStr, truss, member, type, material, qtyStr, thkStr, widthStr, lengthStr] = parts;
+      // ID.truss.member.type.material.qty.thk.width.len.total
+      [idStr, truss, member, type, materialBase, qtyStr, thkStr, widthStr, lengthStr] =
+        parts;
     }
 
     const ID = Number(idStr);
@@ -175,7 +261,7 @@ const parseMembers = (contents: string, jobName: string) => {
       width,
       thickness,
       length,
-      material: `${width}x${thickness} ${material}`,
+      material: `${width}x${thickness} ${materialBase}`,
       quantity,
       done: 0,
       cuts: [
@@ -299,7 +385,6 @@ export function PrydaConversionPage() {
     <main className="pryda-page">
       <section className="pryda-card" aria-labelledby="pryda-title">
         <header className="pryda-card__header">
-          <p className="eyebrow">Pryda Converter</p>
           <div>
             <h1 id="pryda-title">CSV to PSF</h1>
             <p className="pryda-card__lede">
@@ -313,7 +398,7 @@ export function PrydaConversionPage() {
           <label className="pryda-field">
             <span className="pryda-field__label">CSV file</span>
             <input type="file" accept=".csv,text/csv,text/plain" onChange={handleFileChange} />
-            <span className="pryda-field__hint">Accepts dot-separated rows with 10 or 11 fields.</span>
+            <span className="pryda-field__hint">Accepts semicolon-separated with 8 to 11 fields</span>
           </label>
 
           <label className="pryda-field">
