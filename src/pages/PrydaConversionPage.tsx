@@ -307,6 +307,7 @@ export function PrydaConversionPage() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [downloadName, setDownloadName] = useState<string | null>(null);
   const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);  
   const [isConverting, setIsConverting] = useState(false);
 
   const defaultJobName = useMemo(() => deriveJobName(jobName, selectedFile || undefined), [jobName, selectedFile]);
@@ -325,6 +326,7 @@ export function PrydaConversionPage() {
     setMemberCount(null);
     setDownloadUrl(null);
     setDownloadName(null);
+    setMembers([]);    
     setError(null);
 
     if (file) {
@@ -361,11 +363,13 @@ export function PrydaConversionPage() {
       setDownloadUrl(url);
       setDownloadName(`${finalJobName}.psf`);
       setMemberCount(result.members.length);
+      setMembers(result.members);
       setStatus(`Converted ${result.members.length} members for job "${finalJobName}".`);
     } catch (conversionError) {
       const message = conversionError instanceof Error ? conversionError.message : "Unable to convert file.";
       setError(message);
       setStatus("Conversion failed.");
+      setMembers([]);
     } finally {
       setIsConverting(false);
     }
@@ -432,6 +436,42 @@ export function PrydaConversionPage() {
         </p>
 
         {error ? <p className="pryda-error">{error}</p> : null}
+
+        {members.length > 0 ? (
+          <section className="pryda-preview" aria-label="Conversion preview">
+            <div className="pryda-preview__header">
+              <h2 className="pryda-preview__title">Preview</h2>
+              <span className="pryda-pill">{members.length} rows</span>
+            </div>
+
+            <div className="pryda-table" role="table" aria-label="Converted members">
+              <div className="pryda-table__row pryda-table__row--head" role="row">
+                <span role="columnheader">Truss</span>
+                <span role="columnheader">Member</span>
+                <span role="columnheader">Length</span>
+                <span role="columnheader">Quantity</span>
+                <span role="columnheader">Size</span>
+                <span role="columnheader">Grade</span>
+              </div>
+
+              {members.map((member) => {
+                const size = `${member.width}x${member.thickness}`;
+                const grade = member.material.split(" ").slice(1).join(" ") || member.material;
+
+                return (
+                  <div className="pryda-table__row" role="row" key={`${member.truss}-${member.member}-${member.ID}`}>
+                    <span role="cell">{member.truss}</span>
+                    <span role="cell">{member.member}</span>
+                    <span role="cell">{member.length}</span>
+                    <span role="cell">{member.quantity}</span>
+                    <span role="cell">{size}</span>
+                    <span role="cell">{grade}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
       </section>
     </main>
   );
