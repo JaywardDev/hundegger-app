@@ -13,8 +13,8 @@ import {
   isOperationsFormError,
 } from "../lib/operationsFormApi";
 
-const PLACEHOLDER_FORM_LINK =
-  "https://docs.google.com/forms/d/e/FORM_ID/viewform";
+const PLACEHOLDER_SHEET_LINK = 
+  "https://docs.google.com/spreadsheets/d/1WxxhatxzcHd6_pAvBgc5Mw70-0qQVS3LXVZYbyPT-_c/edit?gid=1036640273#gid=1036640273";
 
 type SubmissionStatus =
   | "idle"
@@ -285,11 +285,11 @@ export function OperationsFormPage() {
         <div className="sheet-actions">
           <a
             className="link-button"
-            href={PLACEHOLDER_FORM_LINK}
+            href={PLACEHOLDER_SHEET_LINK}
             target="_blank"
             rel="noreferrer"
           >
-            Open the Google Form ↗
+            View the Google Sheet ↗
           </a>
         </div>
         <section className="operations-form" aria-label="Operations intake form">
