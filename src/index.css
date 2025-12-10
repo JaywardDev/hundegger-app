@@ -1528,7 +1528,9 @@ input:focus {
 .pryda-page {
   min-height: 100%;
   padding: clamp(28px, 5vw, 72px) clamp(18px, 6vw, 96px);
-  background: linear-gradient(135deg, rgba(255, 214, 0, 0.08), transparent 50%), var(--bg-alt);
+  background-image: url(/public/images/pryda-page-background.png);
+  background-position: center;
+  background-size: cover;
 }
 
 .pryda-card {
