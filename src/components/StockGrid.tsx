@@ -242,7 +242,7 @@ const StackTimber: React.FC<StackTimberProps> = ({
         <span className="stack-timber__texture" aria-hidden="true" />
         <span className="stack-timber__straps" aria-hidden="true" />
         <span className="stack-timber__label-card">
-          <span className="stack-timber__label">{firstItem.size_id} -- {firstItem.pieces}</span>
+          <span className="stack-timber__label">{firstItem.size_id}, {firstItem.pieces} pcs</span>
           <span className="stack-timber__meta">{metaParts.join(" • ")}</span>
         </span>
       </span>
