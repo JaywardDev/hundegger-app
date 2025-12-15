@@ -34,7 +34,8 @@ export const GRADE_PRESETS = [
     "LVL11 visual",
     "LVL13",
     "LVL13 visual",
-    "Glulam"
+    "Glulam",
+    "LVL8"
 ];
 
 export const TREATMENT_PRESETS = [
