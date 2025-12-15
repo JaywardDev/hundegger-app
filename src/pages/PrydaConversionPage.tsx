@@ -45,64 +45,83 @@ const crc32 = (data: Uint8Array) => {
   return (crc ^ 0xffffffff) >>> 0;
 };
 
-const createZipBlob = (filename: string, content: string) => {
+type ZipEntry = {
+  filename: string;
+  content: string;
+};
+
+const createZipArchive = (entries: ZipEntry[]) => {
   const encoder = new TextEncoder();
-  const filenameBytes = encoder.encode(filename);
-  const fileData = encoder.encode(content);
-  const checksum = crc32(fileData);
+  const localParts: Uint8Array[] = [];
+  const centralParts: Uint8Array[] = [];
 
-  const localHeader = new Uint8Array(30 + filenameBytes.length);
-  const localView = new DataView(localHeader.buffer);
-  localView.setUint32(0, 0x04034b50, true);
-  localView.setUint16(4, 20, true); // version needed
-  localView.setUint16(6, 0, true); // general purpose
-  localView.setUint16(8, 0, true); // compression (store)
-  localView.setUint16(10, 0, true); // mod time
-  localView.setUint16(12, 0, true); // mod date
-  localView.setUint32(14, checksum, true);
-  localView.setUint32(18, fileData.length, true);
-  localView.setUint32(22, fileData.length, true);
-  localView.setUint16(26, filenameBytes.length, true);
-  localView.setUint16(28, 0, true); // extra length
-  localHeader.set(filenameBytes, 30);
+  let offset = 0;
 
-  const centralHeader = new Uint8Array(46 + filenameBytes.length);
-  const centralView = new DataView(centralHeader.buffer);
-  centralView.setUint32(0, 0x02014b50, true);
-  centralView.setUint16(4, 20, true); // version made by
-  centralView.setUint16(6, 20, true); // version needed
-  centralView.setUint16(8, 0, true); // general purpose
-  centralView.setUint16(10, 0, true); // compression
-  centralView.setUint16(12, 0, true); // mod time
-  centralView.setUint16(14, 0, true); // mod date
-  centralView.setUint32(16, checksum, true);
-  centralView.setUint32(20, fileData.length, true);
-  centralView.setUint32(24, fileData.length, true);
-  centralView.setUint16(28, filenameBytes.length, true);
-  centralView.setUint16(30, 0, true); // extra length
-  centralView.setUint16(32, 0, true); // comment length
-  centralView.setUint16(34, 0, true); // disk number start
-  centralView.setUint16(36, 0, true); // internal attrs
-  centralView.setUint32(38, 0, true); // external attrs
-  centralView.setUint32(42, 0, true); // local header offset
-  centralHeader.set(filenameBytes, 46);
+  for (const entry of entries) {
+    const filenameBytes = encoder.encode(entry.filename);
+    const fileData = encoder.encode(entry.content);
+    const checksum = crc32(fileData);
+
+    const localHeader = new Uint8Array(30 + filenameBytes.length);
+    const localView = new DataView(localHeader.buffer);
+    localView.setUint32(0, 0x04034b50, true);
+    localView.setUint16(4, 20, true); // version needed
+    localView.setUint16(6, 0, true); // general purpose
+    localView.setUint16(8, 0, true); // compression (store)
+    localView.setUint16(10, 0, true); // mod time
+    localView.setUint16(12, 0, true); // mod date
+    localView.setUint32(14, checksum, true);
+    localView.setUint32(18, fileData.length, true);
+    localView.setUint32(22, fileData.length, true);
+    localView.setUint16(26, filenameBytes.length, true);
+    localView.setUint16(28, 0, true); // extra length
+    localHeader.set(filenameBytes, 30);
+
+    localParts.push(localHeader, fileData);
+
+    const centralHeader = new Uint8Array(46 + filenameBytes.length);
+    const centralView = new DataView(centralHeader.buffer);
+    centralView.setUint32(0, 0x02014b50, true);
+    centralView.setUint16(4, 20, true); // version made by
+    centralView.setUint16(6, 20, true); // version needed
+    centralView.setUint16(8, 0, true); // general purpose
+    centralView.setUint16(10, 0, true); // compression
+    centralView.setUint16(12, 0, true); // mod time
+    centralView.setUint16(14, 0, true); // mod date
+    centralView.setUint32(16, checksum, true);
+    centralView.setUint32(20, fileData.length, true);
+    centralView.setUint32(24, fileData.length, true);
+    centralView.setUint16(28, filenameBytes.length, true);
+    centralView.setUint16(30, 0, true); // extra length
+    centralView.setUint16(32, 0, true); // comment length
+    centralView.setUint16(34, 0, true); // disk number start
+    centralView.setUint16(36, 0, true); // internal attrs
+    centralView.setUint32(38, 0, true); // external attrs
+    centralView.setUint32(42, offset, true); // local header offset
+    centralHeader.set(filenameBytes, 46);
+
+    centralParts.push(centralHeader);
+    offset += localHeader.length + fileData.length;
+  }
+
+  const centralDirectoryOffset = offset;
+  const centralDirectorySize = centralParts.reduce(
+    (size, part) => size + part.length,
+    0
+  );
 
   const endRecord = new Uint8Array(22);
   const endView = new DataView(endRecord.buffer);
-  const centralDirectoryOffset = localHeader.length + fileData.length;
-  const centralDirectorySize = centralHeader.length;
   endView.setUint32(0, 0x06054b50, true);
   endView.setUint16(4, 0, true); // disk number
   endView.setUint16(6, 0, true); // central dir start disk
-  endView.setUint16(8, 1, true); // records on this disk
-  endView.setUint16(10, 1, true); // total records
+  endView.setUint16(8, entries.length, true); // records on this disk
+  endView.setUint16(10, entries.length, true); // total records
   endView.setUint32(12, centralDirectorySize, true);
   endView.setUint32(16, centralDirectoryOffset, true);
   endView.setUint16(20, 0, true); // comment length
 
-  return new Blob([localHeader, fileData, centralHeader, endRecord], {
-    type: "application/zip",
-  });
+  return new Blob([...localParts, ...centralParts, endRecord] as unknown as BlobPart[], { type: "application/zip" });
 };
 
 const parseMillimeter = (field: string) => Number(field.split(":")[0]);
@@ -300,71 +319,125 @@ const parseMembers = (contents: string, jobName: string) => {
 
 export function PrydaConversionPage() {
   const { navigate } = useRouter();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [jobNames, setJobNames] = useState<Record<string, string>>({});
   const [jobName, setJobName] = useState("");
   const [status, setStatus] = useState("Select a CSV file to begin.");
   const [error, setError] = useState<string | null>(null);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [downloadName, setDownloadName] = useState<string | null>(null);
+  const [downloadItems, setDownloadItems] = useState<Array<{ name: string; url: string }>>([]);
   const [memberCount, setMemberCount] = useState<number | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);  
+  const [members, setMembers] = useState<Member[]>([]);
   const [isConverting, setIsConverting] = useState(false);
+  const [bundleMode, setBundleMode] = useState<"separate" | "bundle">("separate");
 
-  const defaultJobName = useMemo(() => deriveJobName(jobName, selectedFile || undefined), [jobName, selectedFile]);
+  const defaultJobName = useMemo(() => {
+    const firstFile = selectedFiles[0];
+    return firstFile ? deriveJobName(jobName, firstFile) : deriveJobName(jobName);
+  }, [jobName, selectedFiles]);
 
   useEffect(() => {
     return () => {
-      if (downloadUrl) {
-        URL.revokeObjectURL(downloadUrl);
-      }
+      downloadItems.forEach((item) => URL.revokeObjectURL(item.url));
     };
-  }, [downloadUrl]);
+  }, [downloadItems]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    setSelectedFile(file ?? null);
+    const files = event.target.files ? Array.from(event.target.files) : [];
+    setSelectedFiles(files);
+    setJobNames({});
+    setJobName(files.length === 1 ? deriveJobName("", files[0]) : "");
     setMemberCount(null);
-    setDownloadUrl(null);
-    setDownloadName(null);
-    setMembers([]);    
+    setDownloadItems([]);
+    setMembers([]);
     setError(null);
 
-    if (file) {
-      const inferredJob = file.name.replace(/\.[^.]+$/, "");
-      setJobName(inferredJob);
-      setStatus(`Loaded ${file.name}. Ready to convert.`);
+    if (files.length > 0) {
+      const fileLabel = files.length === 1 ? files[0].name : `${files.length} files`;
+      setStatus(`Loaded ${fileLabel}. Ready to convert.`);
     } else {
       setStatus("Select a CSV file to begin.");
     }
   };
 
   const handleConvert = async () => {
-    if (!selectedFile) {
-      setError("Please select a CSV file to convert.");
-      setStatus("Waiting for a CSV file.");
+    if (selectedFiles.length === 0) {
+      setError("Please select at least one CSV file to convert.");
+      setStatus("Waiting for CSV files.");
       return;
     }
 
     setIsConverting(true);
     setError(null);
     setMemberCount(null);
-    setDownloadUrl(null);
-    setDownloadName(null);
-    setStatus("Processing file...");
+    setDownloadItems([]);
+    setStatus("Processing file(s)...");
 
     try {
-      const contents = await selectedFile.text();
-      const finalJobName = deriveJobName(jobName, selectedFile);
-      const result = parseMembers(contents, finalJobName);
-      const json = JSON.stringify(result, null, 2);
-      const blob = createZipBlob("members.json", json);
-      const url = URL.createObjectURL(blob);
+      const perFileResults = await Promise.all(
+        selectedFiles.map(async (file) => {
+          const contents = await file.text();
+          const finalJobName = deriveJobName(jobNames[file.name] ?? jobName, file);
+          const result = parseMembers(contents, finalJobName);
 
-      setDownloadUrl(url);
-      setDownloadName(`${finalJobName}.psf`);
-      setMemberCount(result.members.length);
-      setMembers(result.members);
-      setStatus(`Converted ${result.members.length} members for job "${finalJobName}".`);
+          return {
+            jobName: finalJobName,
+            fileName: file.name,
+            payload: result,
+          };
+        })
+      );
+
+      const aggregatedMembers = perFileResults.flatMap((result) => result.payload.members);
+      const totalMembers = aggregatedMembers.length;
+
+      let downloads: Array<{ name: string; url: string }> = [];
+
+      if (bundleMode === "bundle") {
+        const entries = perFileResults.map((result) => ({
+          filename: `${result.jobName}/members.json`,
+          content: JSON.stringify(result.payload, null, 2),
+        }));
+
+        const bundleBlob = createZipArchive(entries);
+        const bundleName =
+          perFileResults.length === 1
+            ? `${perFileResults[0].jobName}.psf`
+            : "pryda-jobs.zip";
+
+        downloads = [
+          {
+            name: bundleName,
+            url: URL.createObjectURL(bundleBlob),
+          },
+        ];
+      } else {
+        downloads = perFileResults.map((result) => {
+          const json = JSON.stringify(result.payload, null, 2);
+          const blob = createZipArchive([
+            { filename: "members.json", content: json },
+          ]);
+
+          return {
+            name: `${result.jobName}.psf`,
+            url: URL.createObjectURL(blob),
+          };
+        });
+      }
+
+      setDownloadItems(downloads);
+      setMemberCount(totalMembers);
+      setMembers(aggregatedMembers);
+
+      const jobLabel =
+        perFileResults.length === 1
+          ? `job "${perFileResults[0].jobName}"`
+          : `${perFileResults.length} jobs`;
+      const bundleLabel =
+        bundleMode === "bundle" && perFileResults.length > 1
+          ? " Bundled into a single zip."
+          : "";
+
+      setStatus(`Converted ${totalMembers} members for ${jobLabel}.${bundleLabel}`);
     } catch (conversionError) {
       const message = conversionError instanceof Error ? conversionError.message : "Unable to convert file.";
       setError(message);
@@ -375,14 +448,12 @@ export function PrydaConversionPage() {
     }
   };
 
-  const handleDownload = () => {
-    if (!downloadUrl || !downloadName) return;
-
+  const handleDownload = (url: string, name: string) => {
     const anchor = document.createElement("a");
-    anchor.href = downloadUrl;
-    anchor.download = downloadName;
+    anchor.href = url;
+    anchor.download = name;
     anchor.click();
-    setStatus(`Downloaded ${downloadName}.`);
+    setStatus(`Downloaded ${name}.`);
   };
 
   return (
@@ -401,28 +472,91 @@ export function PrydaConversionPage() {
         <div className="pryda-grid">
           <label className="pryda-field">
             <span className="pryda-field__label">CSV file</span>
-            <input type="file" accept=".csv,text/csv,text/plain" onChange={handleFileChange} />
+            <input
+              type="file"
+              accept=".csv,text/csv,text/plain"
+              multiple
+              onChange={handleFileChange}
+            />
             <span className="pryda-field__hint">Accepts semicolon-separated with 8 to 11 fields</span>
           </label>
 
           <label className="pryda-field">
-            <span className="pryda-field__label">Job name</span>
+            <span className="pryda-field__label">Default job name</span>
             <input
               type="text"
               value={jobName}
               onChange={(event) => setJobName(event.target.value)}
               placeholder={defaultJobName}
             />
-            <span className="pryda-field__hint">Defaults to the uploaded file name.</span>
+            <span className="pryda-field__hint">
+              Used when a file-specific name is empty. Defaults to the uploaded file name.
+            </span>
           </label>
+        </div>
+
+        {selectedFiles.length > 0 ? (
+          <section className="pryda-list" aria-label="Per-file job names">
+            <h2 className="pryda-preview__title">Files</h2>
+            <div className="pryda-grid">
+              {selectedFiles.map((file) => (
+                <label className="pryda-field" key={file.name}>
+                  <span className="pryda-field__label">{file.name}</span>
+                  <input
+                    type="text"
+                    value={jobNames[file.name] ?? deriveJobName("", file)}
+                    onChange={(event) =>
+                      setJobNames((current) => ({
+                        ...current,
+                        [file.name]: event.target.value,
+                      }))
+                    }
+                    placeholder={deriveJobName("", file)}
+                  />
+                  <span className="pryda-field__hint">PSF job name for this file.</span>
+                </label>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <div className="pryda-grid">
+          <fieldset className="pryda-field" role="group" aria-label="Download mode">
+            <legend className="pryda-field__label">Download mode</legend>
+            <label className="pryda-choice">
+              <input
+                type="radio"
+                name="bundle-mode"
+                value="separate"
+                checked={bundleMode === "separate"}
+                onChange={() => setBundleMode("separate")}
+              />
+              <span>One PSF per file</span>
+            </label>
+            <label className="pryda-choice">
+              <input
+                type="radio"
+                name="bundle-mode"
+                value="bundle"
+                checked={bundleMode === "bundle"}
+                onChange={() => setBundleMode("bundle")}
+              />
+              <span>Bundle all into a single zip</span>
+            </label>
+            <span className="pryda-field__hint">Choose how downloads are packaged.</span>
+          </fieldset>
         </div>
 
         <div className="pryda-actions">
           <button className="button button--primary" onClick={handleConvert} disabled={isConverting}>
             {isConverting ? "Converting..." : "Convert to PSF"}
           </button>
-          <button className="button" onClick={handleDownload} disabled={!downloadUrl}>
-            Download PSF
+          <button
+            className="button"
+            onClick={() => downloadItems.forEach((item) => handleDownload(item.url, item.name))}
+            disabled={downloadItems.length === 0}
+          >
+            Download {downloadItems.length > 1 ? "all" : "PSF"}
           </button>
           <button className="button button--ghost" onClick={() => navigate("home")}>
             Back to home
@@ -432,10 +566,37 @@ export function PrydaConversionPage() {
         <p className="pryda-status" role="status">
           <span className="pryda-status__text">{status}</span>
           {memberCount !== null ? <span className="pryda-pill">{memberCount} members</span> : null}
-          {downloadName ? <span className="pryda-pill">{downloadName}</span> : null}
+          {selectedFiles.length > 0 ? (
+            <span className="pryda-pill">{selectedFiles.length} file(s)</span>
+          ) : null}
         </p>
 
         {error ? <p className="pryda-error">{error}</p> : null}
+
+        {downloadItems.length > 0 ? (
+          <section className="pryda-preview" aria-label="Download links">
+            <div className="pryda-preview__header">
+              <h2 className="pryda-preview__title">Downloads</h2>
+              <span className="pryda-pill">{downloadItems.length} file(s)</span>
+            </div>
+            <div className="pryda-table" role="table" aria-label="PSF downloads">
+              <div className="pryda-table__row pryda-table__row--head" role="row">
+                <span role="columnheader">File</span>
+                <span role="columnheader">Action</span>
+              </div>
+              {downloadItems.map((download) => (
+                <div className="pryda-table__row" role="row" key={download.name}>
+                  <span role="cell">{download.name}</span>
+                  <span role="cell">
+                    <button className="button" onClick={() => handleDownload(download.url, download.name)}>
+                      Download
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {members.length > 0 ? (
           <section className="pryda-preview" aria-label="Conversion preview">
@@ -446,6 +607,7 @@ export function PrydaConversionPage() {
 
             <div className="pryda-table" role="table" aria-label="Converted members">
               <div className="pryda-table__row pryda-table__row--head" role="row">
+                <span role="columnheader">Job</span>
                 <span role="columnheader">Truss</span>
                 <span role="columnheader">Member</span>
                 <span role="columnheader">Length</span>
@@ -460,6 +622,7 @@ export function PrydaConversionPage() {
 
                 return (
                   <div className="pryda-table__row" role="row" key={`${member.truss}-${member.member}-${member.ID}`}>
+                    <span role="cell">{member.job}</span>
                     <span role="cell">{member.truss}</span>
                     <span role="cell">{member.member}</span>
                     <span role="cell">{member.length}</span>
