@@ -1,6 +1,7 @@
 export const SIZE_PRESETS = [
   { id: "45x90", width_mm: 90, thickness_mm: 45 },
   { id: "45x140", width_mm: 140, thickness_mm: 45 },
+  { id: "45x300", width_mm: 300, thickness_mm: 45 },
   { id: "64x90", width_mm: 90, thickness_mm: 64 },
   { id: "64x140", width_mm: 140, thickness_mm: 64 },
   { id: "64x200", width_mm: 200, thickness_mm: 64 },
