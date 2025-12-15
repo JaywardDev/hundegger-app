@@ -393,16 +393,18 @@ export function PrydaConversionPage() {
       let downloads: Array<{ name: string; url: string }> = [];
 
       if (bundleMode === "bundle") {
-        const entries = perFileResults.map((result) => ({
-          filename: `${result.jobName}/members.json`,
-          content: JSON.stringify(result.payload, null, 2),
-        }));
+        const bundlePayload = {
+          meta: perFileResults[0]?.payload.meta,
+          members: aggregatedMembers,
+        };
 
-        const bundleBlob = createZipArchive(entries);
+        const bundleBlob = createZipArchive([
+          { filename: "members.json", content: JSON.stringify(bundlePayload, null, 2) },
+        ]);
         const bundleName =
           perFileResults.length === 1
             ? `${perFileResults[0].jobName}.psf`
-            : "pryda-jobs.zip";
+            : "pryda-jobs.psf";
 
         downloads = [
           {
@@ -434,7 +436,7 @@ export function PrydaConversionPage() {
           : `${perFileResults.length} jobs`;
       const bundleLabel =
         bundleMode === "bundle" && perFileResults.length > 1
-          ? " Bundled into a single zip."
+          ? " Bundled into a single psf."
           : "";
 
       setStatus(`Converted ${totalMembers} members for ${jobLabel}.${bundleLabel}`);
@@ -541,7 +543,7 @@ export function PrydaConversionPage() {
                 checked={bundleMode === "bundle"}
                 onChange={() => setBundleMode("bundle")}
               />
-              <span>Bundle all into a single zip</span>
+              <span>Bundle all into a single psf</span>
             </label>
             <span className="pryda-field__hint">Choose how downloads are packaged.</span>
           </fieldset>
