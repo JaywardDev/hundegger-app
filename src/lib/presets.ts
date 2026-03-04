@@ -19,6 +19,7 @@ export const SIZE_PRESETS = [
   { id: "135x240", width_mm: 240, thickness_mm: 135 },
   { id: "135x300", width_mm: 300, thickness_mm: 135 },
   { id: "135x400", width_mm: 400, thickness_mm: 135 },
+  { id: "180x140", width_mm: 140, thickness_mm: 180 },  
   { id: "180x240", width_mm: 240, thickness_mm: 180 },
   { id: "180x300", width_mm: 300, thickness_mm: 180 },
   { id: "180x360", width_mm: 360, thickness_mm: 180 },
