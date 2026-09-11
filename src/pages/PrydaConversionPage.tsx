@@ -1,130 +1,14 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { useRouter } from "../lib/router";
+import {
+  ConversionError,
+  buildPsf,
+  createPayload,
+  parseCutList,
+} from "../lib/prydaConverter.js";
+import type { Member, RowIssue } from "../lib/prydaConverter.js";
 
-type Member = {
-  ID: number;
-  job: string;
-  truss: string;
-  member: string;
-  type: string;
-  width: number;
-  thickness: number;
-  length: number;
-  material: string;
-  quantity: number;
-  done: number;
-  cuts: Array<{
-    endCut: {
-      end: number;
-      location: number;
-      angle: number;
-      angleOffset: number;
-    };
-  }>;
-};
-
-const createCrcTable = () => {
-  const table = new Uint32Array(256);
-  for (let i = 0; i < 256; i++) {
-    let c = i;
-    for (let k = 0; k < 8; k++) {
-      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    }
-    table[i] = c >>> 0;
-  }
-  return table;
-};
-
-const CRC_TABLE = createCrcTable();
-
-const crc32 = (data: Uint8Array) => {
-  let crc = 0xffffffff;
-  for (const byte of data) {
-    crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
-  }
-  return (crc ^ 0xffffffff) >>> 0;
-};
-
-type ZipEntry = {
-  filename: string;
-  content: string;
-};
-
-const createZipArchive = (entries: ZipEntry[]) => {
-  const encoder = new TextEncoder();
-  const localParts: Uint8Array[] = [];
-  const centralParts: Uint8Array[] = [];
-
-  let offset = 0;
-
-  for (const entry of entries) {
-    const filenameBytes = encoder.encode(entry.filename);
-    const fileData = encoder.encode(entry.content);
-    const checksum = crc32(fileData);
-
-    const localHeader = new Uint8Array(30 + filenameBytes.length);
-    const localView = new DataView(localHeader.buffer);
-    localView.setUint32(0, 0x04034b50, true);
-    localView.setUint16(4, 20, true); // version needed
-    localView.setUint16(6, 0, true); // general purpose
-    localView.setUint16(8, 0, true); // compression (store)
-    localView.setUint16(10, 0, true); // mod time
-    localView.setUint16(12, 0, true); // mod date
-    localView.setUint32(14, checksum, true);
-    localView.setUint32(18, fileData.length, true);
-    localView.setUint32(22, fileData.length, true);
-    localView.setUint16(26, filenameBytes.length, true);
-    localView.setUint16(28, 0, true); // extra length
-    localHeader.set(filenameBytes, 30);
-
-    localParts.push(localHeader, fileData);
-
-    const centralHeader = new Uint8Array(46 + filenameBytes.length);
-    const centralView = new DataView(centralHeader.buffer);
-    centralView.setUint32(0, 0x02014b50, true);
-    centralView.setUint16(4, 20, true); // version made by
-    centralView.setUint16(6, 20, true); // version needed
-    centralView.setUint16(8, 0, true); // general purpose
-    centralView.setUint16(10, 0, true); // compression
-    centralView.setUint16(12, 0, true); // mod time
-    centralView.setUint16(14, 0, true); // mod date
-    centralView.setUint32(16, checksum, true);
-    centralView.setUint32(20, fileData.length, true);
-    centralView.setUint32(24, fileData.length, true);
-    centralView.setUint16(28, filenameBytes.length, true);
-    centralView.setUint16(30, 0, true); // extra length
-    centralView.setUint16(32, 0, true); // comment length
-    centralView.setUint16(34, 0, true); // disk number start
-    centralView.setUint16(36, 0, true); // internal attrs
-    centralView.setUint32(38, 0, true); // external attrs
-    centralView.setUint32(42, offset, true); // local header offset
-    centralHeader.set(filenameBytes, 46);
-
-    centralParts.push(centralHeader);
-    offset += localHeader.length + fileData.length;
-  }
-
-  const centralDirectoryOffset = offset;
-  const centralDirectorySize = centralParts.reduce(
-    (size, part) => size + part.length,
-    0
-  );
-
-  const endRecord = new Uint8Array(22);
-  const endView = new DataView(endRecord.buffer);
-  endView.setUint32(0, 0x06054b50, true);
-  endView.setUint16(4, 0, true); // disk number
-  endView.setUint16(6, 0, true); // central dir start disk
-  endView.setUint16(8, entries.length, true); // records on this disk
-  endView.setUint16(10, entries.length, true); // total records
-  endView.setUint32(12, centralDirectorySize, true);
-  endView.setUint32(16, centralDirectoryOffset, true);
-  endView.setUint16(20, 0, true); // comment length
-
-  return new Blob([...localParts, ...centralParts, endRecord] as unknown as BlobPart[], { type: "application/zip" });
-};
-
-const parseMillimeter = (field: string) => Number(field.split(":")[0]);
+type ReportedIssue = RowIssue & { file: string };
 
 const deriveJobName = (input: string, file?: File) => {
   const trimmed = input.trim();
@@ -139,184 +23,6 @@ const deriveJobName = (input: string, file?: File) => {
   return "job";
 };
 
-const parseMembers = (contents: string, jobName: string) => {
-  const lines = contents
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  if (!lines.length) {
-    throw new Error("The CSV file is empty.");
-  }
-
-  const members: Member[] = [];
-
-  for (const [index, rawLine] of lines.entries()) {
-    const line = rawLine.replace(/^\uFEFF/, "");
-
-    // ─────────────────────────────────────────────
-    // NEW FORMAT: semicolon-separated
-    // Example:
-    // 13;R_0016 R_0008;Blocking;Pine;3;35;70;616
-    // truss;memberList;type;material;qty;thk;width;length
-    // ─────────────────────────────────────────────
-    if (line.includes(";")) {
-      const parts = line.split(";");
-
-      if (parts.length !== 8) {
-        throw new Error(
-          `Line ${index + 1} has ${parts.length} fields (semicolon format). Expected 8.`
-        );
-      }
-
-      const [
-        trussRaw,
-        memberRaw,
-        typeRaw,
-        materialRaw,
-        qtyStr,
-        thkStr,
-        widthStr,
-        lengthStr,
-      ] = parts;
-
-      const truss = trussRaw.trim();
-      const member = memberRaw.trim();       // full "R_0016 R_0008 …"
-      const type = typeRaw.trim();
-      const materialBase = materialRaw.trim();
-
-      const quantity = Number(qtyStr);
-      const thickness = parseMillimeter(thkStr);
-      const width = parseMillimeter(widthStr);
-      const length = parseMillimeter(lengthStr);
-
-      if ([quantity, thickness, width, length].some((value) => Number.isNaN(value))) {
-        throw new Error(`Line ${index + 1} contains invalid numeric values.`);
-      }
-
-      members.push({
-        ID: index + 1,                         // no ID in new format; use line number
-        job: jobName,
-        truss,
-        member,
-        type,
-        width,
-        thickness,
-        length,
-        material: `${width}x${thickness} ${materialBase}`, // e.g. "70x35 Pine"
-        quantity,
-        done: 0,
-        cuts: [
-          {
-            endCut: {
-              end: 1,
-              location: 0,
-              angle: 90,
-              angleOffset: 0,
-            },
-          },
-          {
-            endCut: {
-              end: 2,
-              location: length,
-              angle: 90,
-              angleOffset: 0,
-            },
-          },
-        ],
-      });
-
-      continue; // skip dot-format parsing for this line
-    }
-
-    // ─────────────────────────────────────────────
-    // OLD FORMAT: dot-separated
-    // 47.429.Roof.R_0016.Blocking.Pine.1.35:00.70:00.616:00.616:00
-    // ─────────────────────────────────────────────
-    const parts = line.split(".");
-
-    if (parts.length !== 10 && parts.length !== 11) {
-      throw new Error(
-        `Line ${index + 1} has ${parts.length} fields (dot format). Expected 10 or 11.`
-      );
-    }
-
-    let idStr: string;
-    let truss: string;
-    let member: string;
-    let type: string;
-    let materialBase: string;
-    let qtyStr: string;
-    let thkStr: string;
-    let widthStr: string;
-    let lengthStr: string;
-
-    if (parts.length === 11) {
-      // ID.frame.truss.member.type.material.qty.thk.width.len.total
-      [idStr, , truss, member, type, materialBase, qtyStr, thkStr, widthStr, lengthStr] =
-        parts;
-    } else {
-      // ID.truss.member.type.material.qty.thk.width.len.total
-      [idStr, truss, member, type, materialBase, qtyStr, thkStr, widthStr, lengthStr] =
-        parts;
-    }
-
-    const ID = Number(idStr);
-    const quantity = Number(qtyStr);
-    const thickness = parseMillimeter(thkStr);
-    const width = parseMillimeter(widthStr);
-    const length = parseMillimeter(lengthStr);
-
-    if ([ID, quantity, thickness, width, length].some((value) => Number.isNaN(value))) {
-      throw new Error(`Line ${index + 1} contains invalid numeric values.`);
-    }
-
-    members.push({
-      ID,
-      job: jobName,
-      truss,
-      member,
-      type,
-      width,
-      thickness,
-      length,
-      material: `${width}x${thickness} ${materialBase}`,
-      quantity,
-      done: 0,
-      cuts: [
-        {
-          endCut: {
-            end: 1,
-            location: 0,
-            angle: 90,
-            angleOffset: 0,
-          },
-        },
-        {
-          endCut: {
-            end: 2,
-            location: length,
-            angle: 90,
-            angleOffset: 0,
-          },
-        },
-      ],
-    });
-  }
-
-  const meta = {
-    majorVersion: 2,
-    minorVersion: 0,
-    createdBy: "Hundegger app CSV→Pryda",
-    fenceLine: "BACK",
-  };
-
-  return {
-    meta,
-    members,
-  };
-};
-
 export function PrydaConversionPage() {
   const { navigate } = useRouter();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -324,6 +30,7 @@ export function PrydaConversionPage() {
   const [jobName, setJobName] = useState("");
   const [status, setStatus] = useState("Select a CSV file to begin.");
   const [error, setError] = useState<string | null>(null);
+  const [issues, setIssues] = useState<ReportedIssue[]>([]);
   const [downloadItems, setDownloadItems] = useState<Array<{ name: string; url: string }>>([]);
   const [memberCount, setMemberCount] = useState<number | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -341,15 +48,20 @@ export function PrydaConversionPage() {
     };
   }, [downloadItems]);
 
+  // The name a file will actually be converted under. The per-file input and the
+  // conversion both read this, so what the operator sees is what lands in the PSF.
+  const resolveJobName = (file: File) => deriveJobName(jobNames[file.name] ?? jobName, file);
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : [];
     setSelectedFiles(files);
     setJobNames({});
-    setJobName(files.length === 1 ? deriveJobName("", files[0]) : "");
+    setJobName("");
     setMemberCount(null);
     setDownloadItems([]);
     setMembers([]);
     setError(null);
+    setIssues([]);
 
     if (files.length > 0) {
       const fileLabel = files.length === 1 ? files[0].name : `${files.length} files`;
@@ -368,62 +80,78 @@ export function PrydaConversionPage() {
 
     setIsConverting(true);
     setError(null);
+    setIssues([]);
     setMemberCount(null);
     setDownloadItems([]);
     setStatus("Processing file(s)...");
 
     try {
-      const perFileResults = await Promise.all(
-        selectedFiles.map(async (file) => {
-          const contents = await file.text();
-          const finalJobName = deriveJobName(jobNames[file.name] ?? jobName, file);
-          const result = parseMembers(contents, finalJobName);
+      const contents = await Promise.all(selectedFiles.map((file) => file.text()));
 
-          return {
+      const perFileResults: Array<{ jobName: string; fileName: string; members: Member[] }> = [];
+      const rejected: ReportedIssue[] = [];
+
+      // Member IDs run on across files so a bundled PSF cannot contain duplicates.
+      let nextId = 1;
+
+      // Every file is parsed even after one fails, so the operator sees every bad
+      // row in one pass instead of discovering them one attempt at a time.
+      selectedFiles.forEach((file, index) => {
+        const finalJobName = resolveJobName(file);
+
+        try {
+          const parsed = parseCutList(contents[index], {
             jobName: finalJobName,
+            startId: nextId,
             fileName: file.name,
-            payload: result,
-          };
-        })
-      );
+          });
 
-      const aggregatedMembers = perFileResults.flatMap((result) => result.payload.members);
+          nextId = parsed.nextId;
+          perFileResults.push({ jobName: finalJobName, fileName: file.name, members: parsed.members });
+        } catch (parseError) {
+          if (!(parseError instanceof ConversionError)) {
+            throw parseError;
+          }
+
+          rejected.push(...parseError.issues.map((entry) => ({ ...entry, file: file.name })));
+        }
+      });
+
+      if (rejected.length > 0) {
+        const fileCount = new Set(rejected.map((entry) => entry.file)).size;
+        setIssues(rejected);
+        setError(
+          `${rejected.length} row${rejected.length > 1 ? "s" : ""} in ${fileCount} file${
+            fileCount > 1 ? "s" : ""
+          } could not be converted. Nothing was written - fix the rows below and convert again.`
+        );
+        setStatus("Conversion failed.");
+        setMembers([]);
+        return;
+      }
+
+      const aggregatedMembers = perFileResults.flatMap((result) => result.members);
       const totalMembers = aggregatedMembers.length;
 
       let downloads: Array<{ name: string; url: string }> = [];
 
-      if (bundleMode === "bundle") {
-        const bundlePayload = {
-          meta: perFileResults[0]?.payload.meta,
-          members: aggregatedMembers,
-        };
-
-        const bundleBlob = createZipArchive([
-          { filename: "members.json", content: JSON.stringify(bundlePayload, null, 2) },
-        ]);
-        const bundleName =
-          perFileResults.length === 1
-            ? `${perFileResults[0].jobName}.psf`
-            : "pryda-jobs.psf";
-
-        downloads = [
-          {
-            name: bundleName,
-            url: URL.createObjectURL(bundleBlob),
-          },
-        ];
-      } else {
-        downloads = perFileResults.map((result) => {
-          const json = JSON.stringify(result.payload, null, 2);
-          const blob = createZipArchive([
-            { filename: "members.json", content: json },
-          ]);
-
-          return {
-            name: `${result.jobName}.psf`,
-            url: URL.createObjectURL(blob),
-          };
+      const toDownload = (name: string, payloadMembers: Member[]) => {
+        const blob = new Blob([buildPsf(createPayload(payloadMembers))], {
+          type: "application/zip",
         });
+
+        return { name, url: URL.createObjectURL(blob) };
+      };
+
+      if (bundleMode === "bundle") {
+        const bundleName =
+          perFileResults.length === 1 ? `${perFileResults[0].jobName}.psf` : "pryda-jobs.psf";
+
+        downloads = [toDownload(bundleName, aggregatedMembers)];
+      } else {
+        downloads = perFileResults.map((result) =>
+          toDownload(`${result.jobName}.psf`, result.members)
+        );
       }
 
       setDownloadItems(downloads);
@@ -435,13 +163,12 @@ export function PrydaConversionPage() {
           ? `job "${perFileResults[0].jobName}"`
           : `${perFileResults.length} jobs`;
       const bundleLabel =
-        bundleMode === "bundle" && perFileResults.length > 1
-          ? " Bundled into a single psf."
-          : "";
+        bundleMode === "bundle" && perFileResults.length > 1 ? " Bundled into a single psf." : "";
 
       setStatus(`Converted ${totalMembers} members for ${jobLabel}.${bundleLabel}`);
     } catch (conversionError) {
-      const message = conversionError instanceof Error ? conversionError.message : "Unable to convert file.";
+      const message =
+        conversionError instanceof Error ? conversionError.message : "Unable to convert file.";
       setError(message);
       setStatus("Conversion failed.");
       setMembers([]);
@@ -456,6 +183,14 @@ export function PrydaConversionPage() {
     anchor.download = name;
     anchor.click();
     setStatus(`Downloaded ${name}.`);
+  };
+
+  // Browsers drop back-to-back programmatic downloads, so space them out.
+  const handleDownloadAll = async () => {
+    for (const item of downloadItems) {
+      handleDownload(item.url, item.name);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
   };
 
   return (
@@ -480,7 +215,10 @@ export function PrydaConversionPage() {
               multiple
               onChange={handleFileChange}
             />
-            <span className="pryda-field__hint">Accepts semicolon-separated with 8 to 11 fields</span>
+            <span className="pryda-field__hint">
+              Accepts semicolon-separated rows with 8 fields, or dot-separated rows with 10 or 11
+              fields. One length per row.
+            </span>
           </label>
 
           <label className="pryda-field">
@@ -506,7 +244,7 @@ export function PrydaConversionPage() {
                   <span className="pryda-field__label">{file.name}</span>
                   <input
                     type="text"
-                    value={jobNames[file.name] ?? deriveJobName("", file)}
+                    value={jobNames[file.name] ?? deriveJobName(jobName, file)}
                     onChange={(event) =>
                       setJobNames((current) => ({
                         ...current,
@@ -555,7 +293,7 @@ export function PrydaConversionPage() {
           </button>
           <button
             className="button"
-            onClick={() => downloadItems.forEach((item) => handleDownload(item.url, item.name))}
+            onClick={handleDownloadAll}
             disabled={downloadItems.length === 0}
           >
             Download {downloadItems.length > 1 ? "all" : "PSF"}
@@ -575,13 +313,45 @@ export function PrydaConversionPage() {
 
         {error ? <p className="pryda-error">{error}</p> : null}
 
+        {issues.length > 0 ? (
+          <section className="pryda-preview" aria-label="Rows that could not be converted">
+            <div className="pryda-preview__header">
+              <h2 className="pryda-preview__title">Rows to fix</h2>
+              <span className="pryda-pill">{issues.length} row(s)</span>
+            </div>
+
+            <div className="pryda-table pryda-table--issues" role="table" aria-label="Rejected rows">
+              <div className="pryda-table__row pryda-table__row--head" role="row">
+                <span role="columnheader">File</span>
+                <span role="columnheader">Line</span>
+                <span role="columnheader">Problem</span>
+              </div>
+
+              {issues.map((entry, index) => (
+                <div
+                  className="pryda-table__row"
+                  role="row"
+                  key={`${entry.file}-${entry.line}-${entry.code}-${index}`}
+                >
+                  <span role="cell">{entry.file}</span>
+                  <span role="cell">{entry.line > 0 ? entry.line : "-"}</span>
+                  <span role="cell">
+                    {entry.message}
+                    {entry.raw ? <code className="pryda-issue__raw">{entry.raw}</code> : null}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {downloadItems.length > 0 ? (
           <section className="pryda-preview" aria-label="Download links">
             <div className="pryda-preview__header">
               <h2 className="pryda-preview__title">Downloads</h2>
               <span className="pryda-pill">{downloadItems.length} file(s)</span>
             </div>
-            <div className="pryda-table" role="table" aria-label="PSF downloads">
+            <div className="pryda-table pryda-table--downloads" role="table" aria-label="PSF downloads">
               <div className="pryda-table__row pryda-table__row--head" role="row">
                 <span role="columnheader">File</span>
                 <span role="columnheader">Action</span>
@@ -607,7 +377,7 @@ export function PrydaConversionPage() {
               <span className="pryda-pill">{members.length} rows</span>
             </div>
 
-            <div className="pryda-table" role="table" aria-label="Converted members">
+            <div className="pryda-table pryda-table--preview" role="table" aria-label="Converted members">
               <div className="pryda-table__row pryda-table__row--head" role="row">
                 <span role="columnheader">Job</span>
                 <span role="columnheader">Truss</span>
@@ -618,12 +388,12 @@ export function PrydaConversionPage() {
                 <span role="columnheader">Grade</span>
               </div>
 
-              {members.map((member) => {
+              {members.map((member, index) => {
                 const size = `${member.width}x${member.thickness}`;
                 const grade = member.material.split(" ").slice(1).join(" ") || member.material;
 
                 return (
-                  <div className="pryda-table__row" role="row" key={`${member.truss}-${member.member}-${member.ID}`}>
+                  <div className="pryda-table__row" role="row" key={`${member.job}-${member.ID}-${index}`}>
                     <span role="cell">{member.job}</span>
                     <span role="cell">{member.truss}</span>
                     <span role="cell">{member.member}</span>

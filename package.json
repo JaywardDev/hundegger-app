@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node server/index.js",
-    "dev:all": "concurrently \"npm run server\" \"npm run dev -- --host\""
+    "dev:all": "concurrently \"npm run server\" \"npm run dev -- --host\"",
+    "pryda": "node pryda_converter/csv-to-members.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.0",

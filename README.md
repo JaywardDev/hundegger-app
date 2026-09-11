@@ -78,3 +78,35 @@ Before starting the Node.js server, set the following environment variables:
 The frontend points to `/daily-registry` automatically. If you need to hit a
 different endpoint, set `VITE_DAILY_REGISTRY_WEB_APP_URL` before starting Vite
 or building the frontend bundle.
+
+## Pryda CSV converter
+
+The converter turns a Pryda cut list CSV into a `.psf` archive (a ZIP holding a
+single `members.json`). It is available in the app at `#/pryda`, and from the
+command line:
+
+```bash
+npm run pryda -- path/to/job.csv
+npm run pryda -- a.csv b.csv --out-dir builds
+npm run pryda -- a.csv b.csv --bundle builds/all-jobs.psf
+```
+
+Both routes share `src/lib/prydaConverter.js`, so they always produce identical
+output.
+
+### Accepted rows
+
+- Semicolon separated, 8 fields:
+  `truss;members;type;material;qty;thickness;width;length`
+- Dot separated, 10 or 11 fields:
+  `ID.[frame.]truss.member.type.material.qty.thickness.width.length.total`
+
+A row must carry exactly one length. Some exports group several lengths under a
+single quantity - either as an extra field (`...;90;136;137`) or as one field
+holding two numbers (`...;90;22 23`). These are rejected rather than guessed at,
+because the file does not say how the quantity divides between the lengths.
+Split the row in the source export, giving each length its own quantity.
+
+If any row is rejected the whole file is rejected and no `.psf` is written, so a
+cut list can never come out quietly missing members. Every bad row in every
+selected file is reported at once, with its line number and the raw text.
