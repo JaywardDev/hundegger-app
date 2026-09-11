@@ -1,117 +1,176 @@
-const fs = require("fs");
-const path = require("path");
-const AdmZip = require("adm-zip");
+// Converts Pryda cut list CSV exports into .psf archives from the command line.
+//
+// Usage:
+//   node pryda_converter/csv-to-members.js <input.csv> [more.csv ...] [options]
+//
+// Options:
+//   --job <name>      Job name for every input (default: each file's own name)
+//   --out-dir <dir>   Where to write the .psf files (default: alongside the input)
+//   --bundle <file>   Merge every input into one .psf at this path
+//   --first-length    Convert rows that list several lengths on the first one,
+//                     instead of rejecting them. Other checks still apply.
+//
+// The parsing and PSF building live in ../src/lib/prydaConverter.js, shared with
+// the browser page, so both routes always produce identical output.
 
-if (!process.argv[2]) {
-  console.error("Usage: node csv-to-members.js <input-file> [jobName]");
-  process.exit(1);
-}
+import { writeFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import process from "node:process";
 
-const inputPath = process.argv[2];
+import {
+  ConversionError,
+  buildPsf,
+  createPayload,
+  formatIssue,
+  isRecoverableWithFirstLength,
+  parseCutList,
+} from "../src/lib/prydaConverter.js";
 
-// default job name from file name if not provided
-const jobName =
-  process.argv[3] ||
-  path.basename(inputPath).replace(/\.[^.]+$/, "");
+const USAGE =
+  "Usage: node pryda_converter/csv-to-members.js <input.csv> [more.csv ...] " +
+  "[--job <name>] [--out-dir <dir>] [--bundle <file.psf>] [--first-length]";
 
-const lines = fs
-  .readFileSync(inputPath, "utf8")
-  .split(/\r?\n/)
-  .map((l) => l.trim())
-  .filter((l) => l.length > 0);
+/** @param {string[]} argv */
+function parseArgs(argv) {
+  /** @type {string[]} */
+  const inputs = [];
+  /** @type {{ job?: string, outDir?: string, bundle?: string, firstLength?: boolean }} */
+  const options = {};
 
-function parseMm(field) {
-  // "616:00" -> 616
-  return Number(field.split(":")[0]);
-}
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
 
-const members = [];
+    if (arg === "--first-length") {
+      options.firstLength = true;
+      continue;
+    }
 
-for (const rawLine of lines) {
-  const line = rawLine.replace(/^\uFEFF/, ""); // strip BOM if present
-  const parts = line.split(".");
+    if (arg === "--job" || arg === "--out-dir" || arg === "--bundle") {
+      const value = argv[++i];
 
-  // We support:
-  //  - 11 fields: ID.frame.truss.member.type.material.qty.thk.width.len.total
-  //  - 10 fields: ID.truss.member.type.material.qty.thk.width.len.total
-  if (parts.length !== 11 && parts.length !== 10) {
-    throw new Error(`Unexpected field count (${parts.length}) in line: ${line}`);
+      if (!value) {
+        throw new Error(`${arg} needs a value.\n${USAGE}`);
+      }
+
+      if (arg === "--job") options.job = value;
+      else if (arg === "--out-dir") options.outDir = value;
+      else options.bundle = value;
+
+      continue;
+    }
+
+    if (arg.startsWith("--")) {
+      throw new Error(`Unknown option "${arg}".\n${USAGE}`);
+    }
+
+    inputs.push(arg);
   }
 
-  let idStr, truss, member, type, material, qtyStr, thkStr, widthStr, lengthStr, totalStr;
-
-  if (parts.length === 11) {
-    // with unused frame value
-    [idStr, /* frame */ , truss, member, type, material, qtyStr, thkStr, widthStr, lengthStr, totalStr] =
-      parts;
-  } else {
-    // cleaned format (no frame)
-    [idStr, truss, member, type, material, qtyStr, thkStr, widthStr, lengthStr, totalStr] = parts;
+  if (!inputs.length) {
+    throw new Error(USAGE);
   }
 
-  const ID = Number(idStr);
-  const quantity = Number(qtyStr);
-  const thickness = parseMm(thkStr);
-  const width = parseMm(widthStr);
-  const length = parseMm(lengthStr);
-
-  members.push({
-    ID,
-    job: jobName,
-    truss,
-    member,
-    type,
-    width,
-    thickness,
-    length,
-    material: `${width}x${thickness} ${material}`,
-    quantity,
-    done: 0,
-    cuts: [
-      {
-        endCut: {
-          end: 1,
-          location: 0,
-          angle: 90,
-          angleOffset: 0,
-        },
-      },
-      {
-        endCut: {
-          end: 2,
-          location: length,
-          angle: 90,
-          angleOffset: 0,
-        },
-      },
-    ],
-  });
+  return { inputs, options };
 }
 
-const meta = {
-  majorVersion: 2,
-  minorVersion: 0,
-  createdBy: "Hundegger app CSV→Pryda by Jayward",
-  fenceLine: "BACK",
+const jobNameFor = (inputPath, override) =>
+  override || path.basename(inputPath).replace(/\.[^.]+$/, "");
+
+/** @param {import("../src/lib/prydaConverter.js").Member[]} members */
+const writePsf = (outPath, members) => {
+  writeFileSync(outPath, buildPsf(createPayload(members)));
+  console.log(`Wrote ${outPath} (${members.length} members).`);
 };
 
-const result = {
-  meta,
-  members,
-};
+async function main() {
+  const { inputs, options } = parseArgs(process.argv.slice(2));
 
-fs.writeFileSync(
-  "members.json",
-  JSON.stringify(result, null, 2),
-  "utf8"
-);
+  /** @type {Array<{ inputPath: string, job: string, members: import("../src/lib/prydaConverter.js").Member[] }>} */
+  const results = [];
+  /** @type {string[]} */
+  const failures = [];
+  /** @type {string[]} */
+  const trimmed = [];
+  let recoverable = false;
 
-const zip = new AdmZip();
-zip.addFile("members.json", Buffer.from(JSON.stringify(result, null, 2), "utf8"));
+  // Member IDs run on across files so a bundle cannot contain duplicates.
+  let nextId = 1;
 
-const outName = `${jobName}.psf`;
-zip.writeZip(outName);
+  // Every file is parsed even after one fails, so a single run reports every
+  // problem rather than surfacing them one at a time.
+  for (const inputPath of inputs) {
+    const job = jobNameFor(inputPath, options.job);
 
-console.log(
-  `Created members.json for job "${jobName}" with ${members.length} members.`
-);
+    let contents;
+    try {
+      contents = await readFile(inputPath, "utf8");
+    } catch {
+      failures.push(`${inputPath}: could not be read.`);
+      continue;
+    }
+
+    try {
+      const parsed = parseCutList(contents, {
+        jobName: job,
+        startId: nextId,
+        fileName: path.basename(inputPath),
+        multipleLengths: options.firstLength ? "first" : "reject",
+      });
+
+      nextId = parsed.nextId;
+      trimmed.push(...parsed.warnings.map((entry) => `  ${inputPath} ${formatIssue(entry)}`));
+      results.push({ inputPath, job, members: parsed.members });
+    } catch (error) {
+      if (!(error instanceof ConversionError)) {
+        throw error;
+      }
+
+      recoverable = recoverable || isRecoverableWithFirstLength(error.issues);
+      failures.push(
+        `${inputPath}:\n${error.issues.map((entry) => `  ${formatIssue(entry)}`).join("\n")}`
+      );
+    }
+  }
+
+  if (failures.length) {
+    console.error("Conversion failed. Nothing was written.\n");
+    console.error(failures.join("\n\n"));
+
+    if (recoverable && !options.firstLength) {
+      console.error(
+        "\nEvery rejected row simply lists more than one length. Re-run with --first-length " +
+          "to cut each to the first length and ignore the rest."
+      );
+    }
+
+    process.exitCode = 1;
+    return;
+  }
+
+  if (trimmed.length) {
+    console.warn(
+      `${trimmed.length} row${trimmed.length > 1 ? "s" : ""} cut to the first listed length:`
+    );
+    console.warn(trimmed.join("\n"));
+    console.warn("");
+  }
+
+  if (options.bundle) {
+    writePsf(
+      options.bundle,
+      results.flatMap((result) => result.members)
+    );
+    return;
+  }
+
+  for (const result of results) {
+    const outDir = options.outDir ?? path.dirname(result.inputPath);
+    writePsf(path.join(outDir, `${result.job}.psf`), result.members);
+  }
+}
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+});

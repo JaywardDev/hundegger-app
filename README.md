@@ -78,3 +78,49 @@ Before starting the Node.js server, set the following environment variables:
 The frontend points to `/daily-registry` automatically. If you need to hit a
 different endpoint, set `VITE_DAILY_REGISTRY_WEB_APP_URL` before starting Vite
 or building the frontend bundle.
+
+## Pryda CSV converter
+
+The converter turns a Pryda cut list CSV into a `.psf` archive (a ZIP holding a
+single `members.json`). It is available in the app at `#/pryda`, and from the
+command line:
+
+```bash
+npm run pryda -- path/to/job.csv
+npm run pryda -- a.csv b.csv --out-dir builds
+npm run pryda -- a.csv b.csv --bundle builds/all-jobs.psf
+```
+
+Both routes share `src/lib/prydaConverter.js`, so they always produce identical
+output.
+
+### Accepted rows
+
+- Semicolon separated, 8 fields:
+  `truss;members;type;material;qty;thickness;width;length`
+- Dot separated, 10 or 11 fields:
+  `ID.[frame.]truss.member.type.material.qty.thickness.width.length.total`
+
+A row should carry exactly one length. Some exports group several lengths under a
+single quantity - either as an extra field (`...;90;136;137`) or as one field
+holding two numbers (`...;90;22 23`).
+
+By default those rows are flagged rather than guessed at, because the file does
+not say how the quantity divides between the lengths. The cleanest fix is to
+split the row in the source export, giving each length its own quantity.
+
+When that is not practical, the row can be converted on its **first** length with
+the rest ignored (`136, 137` cuts at 136; `22 23` cuts at 22):
+
+- In the app, a "Convert using the first length" button appears next to the
+  flagged rows.
+- On the command line, pass `--first-length`.
+
+Either way the converted rows are listed afterwards under "Lengths ignored",
+naming what was used and what was dropped, so the decision is never silent. The
+option only covers multiple lengths - a bad number or a wrong field count still
+rejects the file, and the button is not offered when one is present.
+
+If any row is rejected the whole file is rejected and no `.psf` is written, so a
+cut list can never come out quietly missing members. Every bad row in every
+selected file is reported at once, with its line number and the raw text.
