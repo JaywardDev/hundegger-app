@@ -7,6 +7,8 @@
 //   --job <name>      Job name for every input (default: each file's own name)
 //   --out-dir <dir>   Where to write the .psf files (default: alongside the input)
 //   --bundle <file>   Merge every input into one .psf at this path
+//   --first-length    Convert rows that list several lengths on the first one,
+//                     instead of rejecting them. Other checks still apply.
 //
 // The parsing and PSF building live in ../src/lib/prydaConverter.js, shared with
 // the browser page, so both routes always produce identical output.
@@ -21,22 +23,28 @@ import {
   buildPsf,
   createPayload,
   formatIssue,
+  isRecoverableWithFirstLength,
   parseCutList,
 } from "../src/lib/prydaConverter.js";
 
 const USAGE =
   "Usage: node pryda_converter/csv-to-members.js <input.csv> [more.csv ...] " +
-  "[--job <name>] [--out-dir <dir>] [--bundle <file.psf>]";
+  "[--job <name>] [--out-dir <dir>] [--bundle <file.psf>] [--first-length]";
 
 /** @param {string[]} argv */
 function parseArgs(argv) {
   /** @type {string[]} */
   const inputs = [];
-  /** @type {{ job?: string, outDir?: string, bundle?: string }} */
+  /** @type {{ job?: string, outDir?: string, bundle?: string, firstLength?: boolean }} */
   const options = {};
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
+
+    if (arg === "--first-length") {
+      options.firstLength = true;
+      continue;
+    }
 
     if (arg === "--job" || arg === "--out-dir" || arg === "--bundle") {
       const value = argv[++i];
@@ -82,6 +90,9 @@ async function main() {
   const results = [];
   /** @type {string[]} */
   const failures = [];
+  /** @type {string[]} */
+  const trimmed = [];
+  let recoverable = false;
 
   // Member IDs run on across files so a bundle cannot contain duplicates.
   let nextId = 1;
@@ -104,15 +115,18 @@ async function main() {
         jobName: job,
         startId: nextId,
         fileName: path.basename(inputPath),
+        multipleLengths: options.firstLength ? "first" : "reject",
       });
 
       nextId = parsed.nextId;
+      trimmed.push(...parsed.warnings.map((entry) => `  ${inputPath} ${formatIssue(entry)}`));
       results.push({ inputPath, job, members: parsed.members });
     } catch (error) {
       if (!(error instanceof ConversionError)) {
         throw error;
       }
 
+      recoverable = recoverable || isRecoverableWithFirstLength(error.issues);
       failures.push(
         `${inputPath}:\n${error.issues.map((entry) => `  ${formatIssue(entry)}`).join("\n")}`
       );
@@ -122,8 +136,24 @@ async function main() {
   if (failures.length) {
     console.error("Conversion failed. Nothing was written.\n");
     console.error(failures.join("\n\n"));
+
+    if (recoverable && !options.firstLength) {
+      console.error(
+        "\nEvery rejected row simply lists more than one length. Re-run with --first-length " +
+          "to cut each to the first length and ignore the rest."
+      );
+    }
+
     process.exitCode = 1;
     return;
+  }
+
+  if (trimmed.length) {
+    console.warn(
+      `${trimmed.length} row${trimmed.length > 1 ? "s" : ""} cut to the first listed length:`
+    );
+    console.warn(trimmed.join("\n"));
+    console.warn("");
   }
 
   if (options.bundle) {

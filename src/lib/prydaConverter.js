@@ -22,8 +22,14 @@
  *   done: number,
  *   cuts: Cut[],
  * }} Member
- * @typedef {{ line: number, code: string, message: string, raw: string }} RowIssue
+ * @typedef {"error" | "warning"} IssueSeverity
+ * @typedef {{ line: number, code: string, message: string, raw: string, severity: IssueSeverity }} RowIssue
  * @typedef {{ meta: typeof PSF_META, members: Member[] }} PsfPayload
+ */
+
+/**
+ * How to treat a row carrying more than one length.
+ * @typedef {"reject" | "first"} MultipleLengths
  */
 
 export const PSF_META = Object.freeze({
@@ -35,6 +41,22 @@ export const PSF_META = Object.freeze({
 
 /** A row is only ever accepted with a single length, so 8 fields exactly. */
 const SEMICOLON_FIELD_COUNT = 8;
+
+/** Issue code for a row carrying more than one length. */
+export const MULTIPLE_LENGTHS = "MULTIPLE_LENGTHS";
+
+/** Issue code for such a row once it has been converted on its first length. */
+export const MULTIPLE_LENGTHS_TRIMMED = "MULTIPLE_LENGTHS_TRIMMED";
+
+/**
+ * True when every blocking issue is a row carrying several lengths, i.e. the file
+ * would convert if it were re-run with multipleLengths: "first".
+ *
+ * @param {RowIssue[]} issues
+ * @returns {boolean}
+ */
+export const isRecoverableWithFirstLength = (issues) =>
+  issues.length > 0 && issues.every((entry) => entry.code === MULTIPLE_LENGTHS);
 
 /** Whole millimetres, optionally followed by the ":nn" sub-millimetre part. */
 const MILLIMETRE_TOKEN = /^\d+(?::\d+)?$/;
@@ -70,9 +92,10 @@ export class ConversionError extends Error {
  * @param {string} code
  * @param {string} message
  * @param {string} raw
+ * @param {IssueSeverity} [severity]
  * @returns {RowIssue}
  */
-const issue = (line, code, message, raw) => ({ line, code, message, raw });
+const issue = (line, code, message, raw, severity = "error") => ({ line, code, message, raw, severity });
 
 /** @returns {string} */
 export const formatIssue = (/** @type {RowIssue} */ entry) =>
@@ -168,17 +191,22 @@ function readText(raw, label, line, rawLine, issues) {
  * A well formed row carries exactly one length. Some exports group several
  * lengths under a single quantity, and they show up in two shapes: as extra
  * delimited fields (";90;136;137") or as one field holding several numbers
- * (";90;22 23"). Both are rejected rather than guessed at, because the file does
+ * (";90;22 23").
+ *
+ * By default such a row is rejected rather than guessed at, because the file does
  * not say how the quantity divides between the lengths - cutting that split the
- * wrong way scraps timber.
+ * wrong way scraps timber. With multipleLengths set to "first" the row converts on
+ * its first length and records a warning naming what was dropped, so the decision
+ * stays visible instead of silent.
  *
  * @param {string[]} tail
  * @param {number} line
  * @param {string} rawLine
  * @param {RowIssue[]} issues
+ * @param {MultipleLengths} multipleLengths
  * @returns {number | null}
  */
-function readLength(tail, line, rawLine, issues) {
+function readLength(tail, line, rawLine, issues, multipleLengths) {
   const tokens = tail.flatMap((part) => part.trim().split(/\s+/)).filter(Boolean);
 
   if (tokens.length === 0) {
@@ -187,10 +215,29 @@ function readLength(tail, line, rawLine, issues) {
   }
 
   if (tokens.length > 1) {
+    if (multipleLengths === "first") {
+      const length = readMillimetres(tokens[0], "Length", line, rawLine, issues);
+
+      if (length !== null) {
+        issues.push(
+          issue(
+            line,
+            MULTIPLE_LENGTHS_TRIMMED,
+            `Row listed ${tokens.length} lengths (${tokens.join(", ")}). ` +
+              `Cut to ${tokens[0]}, ignoring ${tokens.slice(1).join(", ")}.`,
+            rawLine,
+            "warning"
+          )
+        );
+      }
+
+      return length;
+    }
+
     issues.push(
       issue(
         line,
-        "MULTIPLE_LENGTHS",
+        MULTIPLE_LENGTHS,
         `Row lists ${tokens.length} lengths (${tokens.join(", ")}) against a single quantity. ` +
           "Split it into one row per length in the source export, each with its own quantity.",
         rawLine
@@ -246,9 +293,10 @@ function buildMember({ ID, job, truss, member, type, materialBase, quantity, thi
  * @param {string} job
  * @param {number} ID
  * @param {RowIssue[]} issues
+ * @param {MultipleLengths} multipleLengths
  * @returns {Member | null}
  */
-function parseSemicolonRow(rawLine, line, job, ID, issues) {
+function parseSemicolonRow(rawLine, line, job, ID, issues, multipleLengths) {
   const parts = rawLine.split(";");
 
   if (parts.length < SEMICOLON_FIELD_COUNT) {
@@ -273,7 +321,7 @@ function parseSemicolonRow(rawLine, line, job, ID, issues) {
   const width = readMillimetres(parts[6], "Width", line, rawLine, issues);
   // Everything past the width is the length. A trailing delimiter contributes no
   // token and is tolerated; two values are not.
-  const length = readLength(parts.slice(7), line, rawLine, issues);
+  const length = readLength(parts.slice(7), line, rawLine, issues, multipleLengths);
 
   if (
     truss === null ||
@@ -303,9 +351,10 @@ function parseSemicolonRow(rawLine, line, job, ID, issues) {
  * @param {string} job
  * @param {number} fallbackId
  * @param {RowIssue[]} issues
+ * @param {MultipleLengths} multipleLengths
  * @returns {Member | null}
  */
-function parseDotRow(rawLine, line, job, fallbackId, issues) {
+function parseDotRow(rawLine, line, job, fallbackId, issues, multipleLengths) {
   const parts = rawLine.split(".");
 
   if (parts.length !== 10 && parts.length !== 11) {
@@ -337,7 +386,7 @@ function parseDotRow(rawLine, line, job, fallbackId, issues) {
   const quantity = readQuantity(parts[5 + offset], line, rawLine, issues);
   const thickness = readMillimetres(parts[6 + offset], "Thickness", line, rawLine, issues);
   const width = readMillimetres(parts[7 + offset], "Width", line, rawLine, issues);
-  const length = readLength([parts[8 + offset]], line, rawLine, issues);
+  const length = readLength([parts[8 + offset]], line, rawLine, issues, multipleLengths);
 
   if (
     !/^\d+$/.test(idRaw) ||
@@ -364,11 +413,21 @@ function parseDotRow(rawLine, line, job, fallbackId, issues) {
  * rejected: a cut list that is quietly missing members is more dangerous than one
  * that refuses to convert.
  *
+ * multipleLengths decides what happens to a row carrying more than one length:
+ * "reject" (the default) refuses the file, "first" converts on the first length
+ * and returns a warning naming what was dropped. It does not relax any other
+ * check - a bad number or a wrong field count still rejects the file.
+ *
  * @param {string} contents
- * @param {{ jobName: string, startId?: number, fileName?: string }} options
- * @returns {{ members: Member[], nextId: number }}
+ * @param {{
+ *   jobName: string,
+ *   startId?: number,
+ *   fileName?: string,
+ *   multipleLengths?: MultipleLengths,
+ * }} options
+ * @returns {{ members: Member[], nextId: number, warnings: RowIssue[] }}
  */
-export function parseCutList(contents, { jobName, startId = 1, fileName }) {
+export function parseCutList(contents, { jobName, startId = 1, fileName, multipleLengths = "reject" }) {
   // Strip a file level BOM, then split keeping the original line numbers so the
   // numbers we report match what the operator sees in their editor.
   const rows = contents
@@ -389,8 +448,8 @@ export function parseCutList(contents, { jobName, startId = 1, fileName }) {
 
   for (const row of rows) {
     const member = row.text.includes(";")
-      ? parseSemicolonRow(row.text, row.line, jobName, nextId, issues)
-      : parseDotRow(row.text, row.line, jobName, nextId, issues);
+      ? parseSemicolonRow(row.text, row.line, jobName, nextId, issues, multipleLengths)
+      : parseDotRow(row.text, row.line, jobName, nextId, issues, multipleLengths);
 
     if (member) {
       members.push(member);
@@ -398,11 +457,15 @@ export function parseCutList(contents, { jobName, startId = 1, fileName }) {
     }
   }
 
-  if (issues.length) {
-    throw new ConversionError(issues, fileName);
+  const errors = issues.filter((entry) => entry.severity === "error");
+
+  if (errors.length) {
+    throw new ConversionError(errors, fileName);
   }
 
-  return { members, nextId };
+  // Warnings only ever reach the caller on a file that converted, so none of them
+  // can belong to a row that was dropped.
+  return { members, nextId, warnings: issues.filter((entry) => entry.severity === "warning") };
 }
 
 /**

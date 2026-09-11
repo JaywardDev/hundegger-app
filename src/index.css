@@ -1718,6 +1718,37 @@ input:focus {
   grid-template-columns: 1fr 0.8fr 2fr 0.7fr 0.7fr 0.8fr 0.9fr;
 }
 
+.pryda-override {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(198, 140, 30, 0.4);
+  background: rgba(240, 180, 40, 0.14);
+  z-index: 1;
+}
+
+.pryda-override__text {
+  margin: 0;
+  flex: 1 1 320px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pryda-warning {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(198, 140, 30, 0.4);
+  background: rgba(240, 180, 40, 0.14);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .pryda-issue__raw {
   display: block;
   margin-top: 6px;

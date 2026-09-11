@@ -4,9 +4,10 @@ import {
   ConversionError,
   buildPsf,
   createPayload,
+  isRecoverableWithFirstLength,
   parseCutList,
 } from "../lib/prydaConverter.js";
-import type { Member, RowIssue } from "../lib/prydaConverter.js";
+import type { Member, MultipleLengths, RowIssue } from "../lib/prydaConverter.js";
 
 type ReportedIssue = RowIssue & { file: string };
 
@@ -31,6 +32,10 @@ export function PrydaConversionPage() {
   const [status, setStatus] = useState("Select a CSV file to begin.");
   const [error, setError] = useState<string | null>(null);
   const [issues, setIssues] = useState<ReportedIssue[]>([]);
+  const [warnings, setWarnings] = useState<ReportedIssue[]>([]);
+  // Set only when every blocking issue is a row carrying several lengths, so the
+  // offer to convert on the first length never appears next to a real error.
+  const [canUseFirstLength, setCanUseFirstLength] = useState(false);
   const [downloadItems, setDownloadItems] = useState<Array<{ name: string; url: string }>>([]);
   const [memberCount, setMemberCount] = useState<number | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
@@ -62,6 +67,8 @@ export function PrydaConversionPage() {
     setMembers([]);
     setError(null);
     setIssues([]);
+    setWarnings([]);
+    setCanUseFirstLength(false);
 
     if (files.length > 0) {
       const fileLabel = files.length === 1 ? files[0].name : `${files.length} files`;
@@ -71,7 +78,7 @@ export function PrydaConversionPage() {
     }
   };
 
-  const handleConvert = async () => {
+  const handleConvert = async (multipleLengths: MultipleLengths = "reject") => {
     if (selectedFiles.length === 0) {
       setError("Please select at least one CSV file to convert.");
       setStatus("Waiting for CSV files.");
@@ -81,6 +88,8 @@ export function PrydaConversionPage() {
     setIsConverting(true);
     setError(null);
     setIssues([]);
+    setWarnings([]);
+    setCanUseFirstLength(false);
     setMemberCount(null);
     setDownloadItems([]);
     setStatus("Processing file(s)...");
@@ -90,6 +99,7 @@ export function PrydaConversionPage() {
 
       const perFileResults: Array<{ jobName: string; fileName: string; members: Member[] }> = [];
       const rejected: ReportedIssue[] = [];
+      const trimmed: ReportedIssue[] = [];
 
       // Member IDs run on across files so a bundled PSF cannot contain duplicates.
       let nextId = 1;
@@ -104,9 +114,11 @@ export function PrydaConversionPage() {
             jobName: finalJobName,
             startId: nextId,
             fileName: file.name,
+            multipleLengths,
           });
 
           nextId = parsed.nextId;
+          trimmed.push(...parsed.warnings.map((entry) => ({ ...entry, file: file.name })));
           perFileResults.push({ jobName: finalJobName, fileName: file.name, members: parsed.members });
         } catch (parseError) {
           if (!(parseError instanceof ConversionError)) {
@@ -120,6 +132,7 @@ export function PrydaConversionPage() {
       if (rejected.length > 0) {
         const fileCount = new Set(rejected.map((entry) => entry.file)).size;
         setIssues(rejected);
+        setCanUseFirstLength(isRecoverableWithFirstLength(rejected));
         setError(
           `${rejected.length} row${rejected.length > 1 ? "s" : ""} in ${fileCount} file${
             fileCount > 1 ? "s" : ""
@@ -129,6 +142,8 @@ export function PrydaConversionPage() {
         setMembers([]);
         return;
       }
+
+      setWarnings(trimmed);
 
       const aggregatedMembers = perFileResults.flatMap((result) => result.members);
       const totalMembers = aggregatedMembers.length;
@@ -164,8 +179,11 @@ export function PrydaConversionPage() {
           : `${perFileResults.length} jobs`;
       const bundleLabel =
         bundleMode === "bundle" && perFileResults.length > 1 ? " Bundled into a single psf." : "";
+      const trimmedLabel = trimmed.length
+        ? ` ${trimmed.length} row${trimmed.length > 1 ? "s" : ""} cut to the first listed length.`
+        : "";
 
-      setStatus(`Converted ${totalMembers} members for ${jobLabel}.${bundleLabel}`);
+      setStatus(`Converted ${totalMembers} members for ${jobLabel}.${bundleLabel}${trimmedLabel}`);
     } catch (conversionError) {
       const message =
         conversionError instanceof Error ? conversionError.message : "Unable to convert file.";
@@ -288,7 +306,11 @@ export function PrydaConversionPage() {
         </div>
 
         <div className="pryda-actions">
-          <button className="button button--primary" onClick={handleConvert} disabled={isConverting}>
+          <button
+            className="button button--primary"
+            onClick={() => handleConvert("reject")}
+            disabled={isConverting}
+          >
             {isConverting ? "Converting..." : "Convert to PSF"}
           </button>
           <button
@@ -312,6 +334,59 @@ export function PrydaConversionPage() {
         </p>
 
         {error ? <p className="pryda-error">{error}</p> : null}
+
+        {canUseFirstLength ? (
+          <div className="pryda-override">
+            <p className="pryda-override__text">
+              Every row above simply lists more than one length. You can convert anyway, cutting
+              each to the <strong>first</strong> length and ignoring the rest.
+            </p>
+            <button
+              className="button"
+              onClick={() => handleConvert("first")}
+              disabled={isConverting}
+            >
+              Convert using the first length
+            </button>
+          </div>
+        ) : null}
+
+        {warnings.length > 0 ? (
+          <section className="pryda-preview" aria-label="Rows cut to their first length">
+            <div className="pryda-preview__header">
+              <h2 className="pryda-preview__title">Lengths ignored</h2>
+              <span className="pryda-pill">{warnings.length} row(s)</span>
+            </div>
+
+            <p className="pryda-warning">
+              These rows listed more than one length. They were cut to the first one - check them
+              against the job before running the saw.
+            </p>
+
+            <div className="pryda-table pryda-table--issues" role="table" aria-label="Trimmed rows">
+              <div className="pryda-table__row pryda-table__row--head" role="row">
+                <span role="columnheader">File</span>
+                <span role="columnheader">Line</span>
+                <span role="columnheader">What was used</span>
+              </div>
+
+              {warnings.map((entry, index) => (
+                <div
+                  className="pryda-table__row"
+                  role="row"
+                  key={`${entry.file}-${entry.line}-${entry.code}-${index}`}
+                >
+                  <span role="cell">{entry.file}</span>
+                  <span role="cell">{entry.line > 0 ? entry.line : "-"}</span>
+                  <span role="cell">
+                    {entry.message}
+                    {entry.raw ? <code className="pryda-issue__raw">{entry.raw}</code> : null}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {issues.length > 0 ? (
           <section className="pryda-preview" aria-label="Rows that could not be converted">
